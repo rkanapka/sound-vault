@@ -9,7 +9,7 @@ function fmtTime(sec) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function Player({ player }) {
+export default function Player({ player, onShowDetails }) {
   const { song, playing, currentTime, duration, volume, togglePlay, prev, next, seek, setVolume } =
     player
 
@@ -41,25 +41,30 @@ export default function Player({ player }) {
   return (
     <footer className="flex-none border-t border-slate-800 bg-slate-900 px-4 py-3">
       <div className="flex items-center gap-3 sm:gap-4 max-w-5xl mx-auto">
-        {/* Album art */}
-        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden flex-none bg-slate-800 border border-slate-700/50">
-          {song.coverArt ? (
-            <img src={artUrl(song.coverArt, 88)} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-600 text-sm">
-              ♫
-            </div>
-          )}
-        </div>
-
-        {/* Track info - hidden on very small screens */}
-        <div className="hidden sm:block flex-none w-36 lg:w-48 min-w-0">
-          <p className="text-sm font-medium text-slate-100 truncate leading-snug">{song.title}</p>
-          <p className="text-xs text-slate-500 truncate mt-0.5">
-            {song.artist}
-            {song.album ? ` · ${song.album}` : ''}
-          </p>
-        </div>
+        {/* Album art + track info — click to open details */}
+        <button
+          onClick={onShowDetails}
+          className="flex items-center gap-3 flex-none group min-w-0 text-left"
+        >
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden flex-none bg-slate-800 border border-slate-700/50 group-hover:border-slate-600 transition-colors">
+            {song.coverArt ? (
+              <img src={artUrl(song.coverArt, 88)} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-600 text-sm">
+                ♫
+              </div>
+            )}
+          </div>
+          <div className="hidden sm:block flex-none w-36 lg:w-48 min-w-0">
+            <p className="text-sm font-medium text-slate-100 truncate leading-snug group-hover:text-emerald-400 transition-colors">
+              {song.title}
+            </p>
+            <p className="text-xs text-slate-500 truncate mt-0.5">
+              {song.artist}
+              {song.album ? ` · ${song.album}` : ''}
+            </p>
+          </div>
+        </button>
 
         {/* Controls + progress */}
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">

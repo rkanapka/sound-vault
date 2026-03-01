@@ -28,6 +28,7 @@ export const downloadFile = (username, filename, size) =>
 export const getArtists = () => apiFetch('GET', '/api/library/artists')
 export const getArtist = (id) => apiFetch('GET', `/api/library/artist/${id}`)
 export const getAlbum = (id) => apiFetch('GET', `/api/library/album/${id}`)
+export const getSong = (id) => apiFetch('GET', `/api/library/song/${id}`)
 export const searchLibrary = (q) =>
   apiFetch('GET', `/api/library/search?q=${encodeURIComponent(q)}`)
 export const triggerScan = () => apiFetch('POST', '/api/library/scan')

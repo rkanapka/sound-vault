@@ -102,6 +102,17 @@ async def get_cover_art(item_id: str, request: Request, size: int = 200):
     )
 
 
+@router.get("/song/{song_id}")
+async def get_song(song_id: str, client: HttpClient):
+    r = await client.get(
+        f"{settings.navidrome_url}/rest/getSong.view",
+        params=nd_params(id=song_id),
+        timeout=10,
+    )
+    r.raise_for_status()
+    return nd_unwrap(r.json())
+
+
 @router.post("/scan")
 async def trigger_scan(client: HttpClient):
     r = await client.get(

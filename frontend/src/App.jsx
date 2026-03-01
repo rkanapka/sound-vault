@@ -1,15 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlayer } from './hooks/usePlayer'
 import { useSearch } from './hooks/useSearch'
 import { useLibrary } from './hooks/useLibrary'
 import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
+import NowPlaying from './components/NowPlaying'
 
 export default function App() {
   const player = usePlayer()
   const search = useSearch()
   const library = useLibrary()
+  const [showNowPlaying, setShowNowPlaying] = useState(false)
 
   useEffect(() => {
     library.loadArtists()
@@ -36,7 +38,10 @@ export default function App() {
       </main>
 
       {/* Persistent player bar */}
-      {player.song && <Player player={player} />}
+      {player.song && <Player player={player} onShowDetails={() => setShowNowPlaying(true)} />}
+
+      {/* Song detail modal */}
+      {showNowPlaying && <NowPlaying song={player.song} onClose={() => setShowNowPlaying(false)} />}
     </div>
   )
 }
