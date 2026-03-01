@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SkipBack, Play, Pause, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2, VolumeX } from 'lucide-react'
 import { artUrl } from '../api'
 
 function fmtTime(sec) {
@@ -10,8 +10,20 @@ function fmtTime(sec) {
 }
 
 export default function Player({ player, onShowDetails }) {
-  const { song, playing, currentTime, duration, volume, togglePlay, prev, next, seek, setVolume } =
-    player
+  const {
+    song,
+    playing,
+    currentTime,
+    duration,
+    volume,
+    repeat,
+    togglePlay,
+    prev,
+    next,
+    seek,
+    setVolume,
+    toggleRepeat,
+  } = player
 
   // Local seek drag state - avoids flickering during drag
   const [dragValue, setDragValue] = useState(null)
@@ -91,6 +103,19 @@ export default function Player({ player, onShowDetails }) {
               className="p-1.5 text-slate-500 hover:text-slate-200 transition-colors rounded-md hover:bg-slate-800"
             >
               <SkipForward size={15} />
+            </button>
+            <button
+              onClick={toggleRepeat}
+              title={
+                repeat === 'off' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one'
+              }
+              className={`p-1.5 rounded-md transition-colors ${
+                repeat === 'off'
+                  ? 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'
+                  : 'text-emerald-400 hover:bg-slate-800'
+              }`}
+            >
+              {repeat === 'one' ? <Repeat1 size={14} /> : <Repeat size={14} />}
             </button>
           </div>
 

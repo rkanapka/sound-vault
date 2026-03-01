@@ -9,6 +9,7 @@ export function usePlayer() {
   const queueRef = useRef([])
   const queueIndexRef = useRef(-1)
   const playAtRef = useRef(null)
+  const repeatRef = useRef('off') // 'off' | 'all' | 'one'
 
   const [state, setState] = useState({
     song: null,
@@ -18,6 +19,7 @@ export function usePlayer() {
     currentTime: 0,
     duration: 0,
     volume: 0.8,
+    repeat: 'off',
   })
 
   const playAt = useCallback((queue, index) => {
@@ -53,8 +55,15 @@ export function usePlayer() {
     const onEnded = () => {
       const queue = queueRef.current
       const idx = queueIndexRef.current
-      if (idx < queue.length - 1) {
+      const repeat = repeatRef.current
+      if (repeat === 'one') {
+        const audio = audioRef.current
+        audio.currentTime = 0
+        audio.play().catch(console.error)
+      } else if (idx < queue.length - 1) {
         playAtRef.current(queue, idx + 1)
+      } else if (repeat === 'all') {
+        playAtRef.current(queue, 0)
       } else {
         setState((s) => ({ ...s, playing: false }))
       }
@@ -115,5 +124,13 @@ export function usePlayer() {
     setState((s) => ({ ...s, volume: vol }))
   }, [])
 
-  return { ...state, play, togglePlay, prev, next, seek, setVolume }
+  const toggleRepeat = useCallback(() => {
+    setState((s) => {
+      const next = s.repeat === 'off' ? 'all' : s.repeat === 'all' ? 'one' : 'off'
+      repeatRef.current = next
+      return { ...s, repeat: next }
+    })
+  }, [])
+
+  return { ...state, play, togglePlay, prev, next, seek, setVolume, toggleRepeat }
 }
