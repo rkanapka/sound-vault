@@ -88,6 +88,31 @@ docker compose up -d --build  # rebuild image and restart (after code changes)
 docker compose ps             # show running services and their status
 ```
 
+## Docker image
+
+Pull a published release image:
+
+```bash
+docker pull kanrim/sound-vault:1.2.3
+```
+
+Use the published image in Compose instead of local `build: .`:
+
+```yaml
+services:
+  sound-vault:
+    image: kanrim/sound-vault:1.2.3
+    container_name: sound-vault
+    restart: unless-stopped
+    environment:
+      - NAVIDROME_USER=${NAVIDROME_USER}
+      - NAVIDROME_PASS=${NAVIDROME_PASS}
+    ports:
+      - 8080:8080
+```
+
+For production deployments, prefer pinned tags like `1.2.3`. Use `latest` only if you want a rolling release.
+
 ## Development
 
 **Backend** (Python 3.14, FastAPI)
