@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# Runtime data (databases, cache, slskd app data)
+data/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

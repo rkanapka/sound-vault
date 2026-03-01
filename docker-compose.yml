@@ -1,0 +1,41 @@
+services:
+  sound-vault:
+    build: .
+    container_name: sound-vault
+    restart: unless-stopped
+    environment:
+      - NAVIDROME_USER=${NAVIDROME_USER}
+      - NAVIDROME_PASS=${NAVIDROME_PASS}
+    ports:
+      - 8080:8080
+
+  slskd:
+    image: slskd/slskd:latest
+    container_name: slskd
+    restart: unless-stopped
+    environment:
+      - SLSKD_NO_AUTH=true          # local-only service, auth not needed
+      - SLSKD_DOWNLOADS_DIR=/music
+      - SLSKD_SLSK_USERNAME=${SLSKD_USERNAME}
+      - SLSKD_SLSK_PASSWORD=${SLSKD_PASSWORD}
+    volumes:
+      - ./data:/app
+      - ${MUSIC_DIR}/music:/music
+    ports:
+      - 5030:5030    # web UI (local network only)
+      - 50300:50300  # Soulseek peer port (optional: forward on router for better speeds)
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LOGLEVEL: info
+      ND_SESSIONTIMEOUT: 24h
+      ND_BASEURL: ""
+    volumes:
+      - ./data:/data
+      - ${MUSIC_DIR}/music:/music:ro
+    ports:
+      - 4533:4533
