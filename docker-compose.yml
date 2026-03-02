@@ -6,6 +6,8 @@ services:
     environment:
       - NAVIDROME_USER=${NAVIDROME_USER}
       - NAVIDROME_PASS=${NAVIDROME_PASS}
+    volumes:
+      - ${MUSIC_DIR}/music:/music
     ports:
       - 8080:8080
 

@@ -32,6 +32,11 @@ async def timeout_handler(request: Request, exc: httpx.TimeoutException):
     raise HTTPException(status_code=504, detail=f"Backend service timed out: {exc}")
 
 
+@app.exception_handler(httpx.HTTPStatusError)
+async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
+    raise HTTPException(status_code=502, detail=f"Upstream error: {exc.response.status_code}")
+
+
 _static = Path(__file__).parent / "static"
 if _static.is_dir():
     app.mount("/static", StaticFiles(directory=str(_static)), name="static")

@@ -1,7 +1,18 @@
-import { useState } from 'react'
-import { Search, RefreshCw, Music, Disc, ChevronRight, Mic2, AlertCircle } from 'lucide-react'
-import { artUrl } from '../api'
+import { useState, useCallback } from 'react'
+import {
+  Search,
+  RefreshCw,
+  Music,
+  Disc,
+  ChevronRight,
+  Mic2,
+  AlertCircle,
+  MoreHorizontal,
+} from 'lucide-react'
+import { artUrl, deleteSong } from '../api'
 import Breadcrumb from './Breadcrumb'
+import SongMenu from './SongMenu'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
 function fmtDuration(secs) {
   if (!secs) return ''
@@ -10,12 +21,12 @@ function fmtDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function LibraryPanel({ library, player, onPlay }) {
+export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   const {
     view,
     artists,
-    currentArtist,
     albums,
+    currentAlbum,
     tracks,
     searchResults,
     breadcrumbs,
@@ -28,9 +39,19 @@ export default function LibraryPanel({ library, player, onPlay }) {
     goBackToArtist,
     searchLib,
     scan,
+    pollScanDone,
   } = library
 
   const [libQuery, setLibQuery] = useState('')
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const [confirmSong, setConfirmSong] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const reloadView = useCallback(() => {
+    if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
+    else if (view === 'search') searchLib(libQuery)
+    else loadArtists()
+  }, [view, currentAlbum, goToAlbum, searchLib, libQuery, loadArtists])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -43,6 +64,20 @@ export default function LibraryPanel({ library, player, onPlay }) {
       loadArtists()
     } else if (action === 'artist') {
       goBackToArtist()
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true)
+    try {
+      await deleteSong(confirmSong.id)
+      setConfirmSong(null)
+      pollScanDone().then(reloadView)
+    } catch (err) {
+      console.error('Delete failed:', err)
+      setConfirmSong(null)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -69,7 +104,7 @@ export default function LibraryPanel({ library, player, onPlay }) {
             </button>
           </form>
           <button
-            onClick={scan}
+            onClick={() => scan(reloadView)}
             disabled={scanning}
             title="Scan library"
             className={`
@@ -197,11 +232,11 @@ export default function LibraryPanel({ library, player, onPlay }) {
             {tracks.map((track, idx) => {
               const isActive = player.song?.id === track.id
               return (
-                <li key={track.id}>
+                <li key={track.id} className="group relative flex items-center">
                   <button
                     onClick={() => onPlay(track, tracks)}
                     className={`
-                      w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors group
+                      flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left transition-colors min-w-0
                       ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}
                     `}
                   >
@@ -219,10 +254,30 @@ export default function LibraryPanel({ library, player, onPlay }) {
                         {track.title}
                       </p>
                     </div>
-                    <span className="text-xs text-slate-600 flex-none tabular-nums">
+                  </button>
+
+                  {/* Duration + 3-dot menu */}
+                  <div className="flex items-center gap-1 pr-2 flex-none">
+                    <span className="text-xs text-slate-600 tabular-nums">
                       {fmtDuration(track.duration)}
                     </span>
-                  </button>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === track.id ? null : track.id)}
+                      className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                      title="More options"
+                    >
+                      <MoreHorizontal size={14} />
+                    </button>
+                  </div>
+
+                  {openMenuId === track.id && (
+                    <SongMenu
+                      song={track}
+                      onInfo={onShowInfo}
+                      onDelete={setConfirmSong}
+                      onClose={() => setOpenMenuId(null)}
+                    />
+                  )}
                 </li>
               )
             })}
@@ -300,17 +355,17 @@ export default function LibraryPanel({ library, player, onPlay }) {
                   {searchResults.songs.map((song) => {
                     const isActive = player.song?.id === song.id
                     return (
-                      <li key={song.id}>
+                      <li key={song.id} className="group relative flex items-center">
                         <button
                           onClick={() => onPlay(song, searchResults.songs)}
                           className={`
-                            w-full flex items-center gap-3 px-4 py-2 text-left transition-colors group
+                            flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-left transition-colors min-w-0
                             ${isActive ? 'bg-emerald-900/20' : 'hover:bg-slate-800/50'}
                           `}
                         >
                           <Music
                             size={12}
-                            className={isActive ? 'text-emerald-400' : 'text-slate-600'}
+                            className={`flex-none ${isActive ? 'text-emerald-400' : 'text-slate-600'}`}
                           />
                           <div className="flex-1 min-w-0">
                             <p
@@ -323,10 +378,30 @@ export default function LibraryPanel({ library, player, onPlay }) {
                               {song.album ? ` · ${song.album}` : ''}
                             </p>
                           </div>
-                          <span className="text-xs text-slate-600 flex-none tabular-nums">
+                        </button>
+
+                        {/* Duration + 3-dot menu */}
+                        <div className="flex items-center gap-1 pr-2 flex-none">
+                          <span className="text-xs text-slate-600 tabular-nums">
                             {fmtDuration(song.duration)}
                           </span>
-                        </button>
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === song.id ? null : song.id)}
+                            className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                            title="More options"
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
+                        </div>
+
+                        {openMenuId === song.id && (
+                          <SongMenu
+                            song={song}
+                            onInfo={onShowInfo}
+                            onDelete={setConfirmSong}
+                            onClose={() => setOpenMenuId(null)}
+                          />
+                        )}
                       </li>
                     )
                   })}
@@ -345,6 +420,16 @@ export default function LibraryPanel({ library, player, onPlay }) {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmSong && (
+        <DeleteConfirmModal
+          song={confirmSong}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setConfirmSong(null)}
+          deleting={deleting}
+        />
+      )}
     </section>
   )
 }

@@ -11,7 +11,7 @@ export default function App() {
   const player = usePlayer()
   const search = useSearch()
   const library = useLibrary()
-  const [showNowPlaying, setShowNowPlaying] = useState(false)
+  const [infoSong, setInfoSong] = useState(null)
 
   useEffect(() => {
     library.loadArtists()
@@ -34,14 +34,19 @@ export default function App() {
       <main className="flex flex-1 min-h-0 overflow-hidden flex-col sm:flex-row">
         <SearchPanel search={search} />
         <div className="hidden sm:block w-px bg-slate-800 flex-none" />
-        <LibraryPanel library={library} player={player} onPlay={handlePlay} />
+        <LibraryPanel
+          library={library}
+          player={player}
+          onPlay={handlePlay}
+          onShowInfo={setInfoSong}
+        />
       </main>
 
       {/* Persistent player bar */}
-      {player.song && <Player player={player} onShowDetails={() => setShowNowPlaying(true)} />}
+      {player.song && <Player player={player} onShowDetails={() => setInfoSong(player.song)} />}
 
       {/* Song detail modal */}
-      {showNowPlaying && <NowPlaying song={player.song} onClose={() => setShowNowPlaying(false)} />}
+      {infoSong && <NowPlaying song={infoSong} onClose={() => setInfoSong(null)} />}
     </div>
   )
 }

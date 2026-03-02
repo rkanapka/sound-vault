@@ -9,6 +9,7 @@ async function apiFetch(method, path, body) {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(text || `HTTP ${res.status}`)
   }
+  if (res.status === 204) return null
   const ct = res.headers.get('content-type') || ''
   if (ct.includes('application/json')) return res.json()
   return null
@@ -32,6 +33,8 @@ export const getSong = (id) => apiFetch('GET', `/api/library/song/${id}`)
 export const searchLibrary = (q) =>
   apiFetch('GET', `/api/library/search?q=${encodeURIComponent(q)}`)
 export const triggerScan = () => apiFetch('POST', '/api/library/scan')
+export const getScanStatus = () => apiFetch('GET', '/api/library/scan-status')
+export const deleteSong = (id) => apiFetch('DELETE', `/api/library/song/${id}`)
 
 // URL helpers - used directly as <audio src> and <img src>
 export const streamUrl = (id) => `/api/library/stream/${id}`

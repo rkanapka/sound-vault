@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     navidrome_url: str = "http://navidrome:4533"
     navidrome_user: str
     navidrome_pass: str
+    music_dir: str = "/music"
 
 
 settings = Settings()

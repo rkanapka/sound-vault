@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getArtists, getArtist, getAlbum, searchLibrary, triggerScan } from '../api'
+import { getArtists, getArtist, getAlbum, searchLibrary, triggerScan, getScanStatus } from '../api'
 
 export function useLibrary() {
   const [view, setView] = useState('artists') // 'artists' | 'artist' | 'album' | 'search'
@@ -107,16 +107,34 @@ export function useLibrary() {
     [loadArtists]
   )
 
-  const scan = useCallback(async () => {
-    setScanning(true)
-    try {
-      await triggerScan()
-    } catch {
-      // scan errors are non-fatal
-    } finally {
-      setTimeout(() => setScanning(false), 2000)
+  const pollScanDone = useCallback(async () => {
+    for (let i = 0; i < 30; i++) {
+      try {
+        const data = await getScanStatus()
+        const resp = data['subsonic-response']
+        if (!resp.scanStatus?.scanning) return
+      } catch {
+        return
+      }
+      await new Promise((r) => setTimeout(r, 500))
     }
   }, [])
+
+  const scan = useCallback(
+    async (onDone) => {
+      setScanning(true)
+      try {
+        await triggerScan()
+        await pollScanDone()
+        onDone?.()
+      } catch {
+        // scan errors are non-fatal
+      } finally {
+        setScanning(false)
+      }
+    },
+    [pollScanDone]
+  )
 
   return {
     view,
@@ -136,5 +154,6 @@ export function useLibrary() {
     goBackToArtist,
     searchLib,
     scan,
+    pollScanDone,
   }
 }
