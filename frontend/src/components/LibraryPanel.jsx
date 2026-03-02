@@ -232,13 +232,10 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
             {tracks.map((track, idx) => {
               const isActive = player.song?.id === track.id
               return (
-                <li key={track.id} className="group relative flex items-center">
+                <li key={track.id} className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}>
                   <button
                     onClick={() => onPlay(track, tracks)}
-                    className={`
-                      flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left transition-colors min-w-0
-                      ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}
-                    `}
+                    className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                   >
                     <span
                       className={`w-5 text-xs text-right flex-none tabular-nums
@@ -355,13 +352,10 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
                   {searchResults.songs.map((song) => {
                     const isActive = player.song?.id === song.id
                     return (
-                      <li key={song.id} className="group relative flex items-center">
+                      <li key={song.id} className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20' : 'hover:bg-slate-800/50'}`}>
                         <button
                           onClick={() => onPlay(song, searchResults.songs)}
-                          className={`
-                            flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-left transition-colors min-w-0
-                            ${isActive ? 'bg-emerald-900/20' : 'hover:bg-slate-800/50'}
-                          `}
+                          className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-left min-w-0"
                         >
                           <Music
                             size={12}
