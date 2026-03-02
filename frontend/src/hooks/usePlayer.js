@@ -45,7 +45,7 @@ export function usePlayer() {
 
   useEffect(() => {
     const audio = audioRef.current
-    audio.volume = 0.8
+    audio.volume = 0.05
 
     const onTimeUpdate = () => setState((s) => ({ ...s, currentTime: audio.currentTime }))
 
