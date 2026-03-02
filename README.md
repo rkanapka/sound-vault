@@ -18,10 +18,10 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
-│  sound-vault  :8080                           │
+│  sound-vault  :8080                         │
 │  FastAPI (Python 3.14)                      │
-│  · /api/library/*  → Navidrome             │
-│  · /api/soulseek/* → slskd                 │
+│  · /api/library/*  → Navidrome              │
+│  · /api/soulseek/* → slskd                  │
 └───────────┬─────────────┬───────────────────┘
             │             │
 ┌───────────▼──┐  ┌───────▼──────┐
