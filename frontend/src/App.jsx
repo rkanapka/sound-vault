@@ -6,12 +6,14 @@ import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
+import { Globe } from 'lucide-react'
 
 export default function App() {
   const player = usePlayer()
   const search = useSearch()
   const library = useLibrary()
   const [infoSong, setInfoSong] = useState(null)
+  const [activePanel, setActivePanel] = useState(null)
 
   useEffect(() => {
     library.loadArtists()
@@ -22,6 +24,12 @@ export default function App() {
     player.play(queue, queue.indexOf(track))
   }
 
+  const togglePanel = (panel) => {
+    setActivePanel((prev) => (prev === panel ? null : panel))
+  }
+
+  const hasSoulseekResults = Object.keys(search.results).length > 0
+
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden">
       {/* Header */}
@@ -30,10 +38,38 @@ export default function App() {
         <span className="text-sm font-semibold tracking-wide text-slate-200">Sound Vault</span>
       </header>
 
-      {/* Two-panel layout */}
-      <main className="flex flex-1 min-h-0 overflow-hidden flex-col sm:flex-row">
-        <SearchPanel search={search} />
-        <div className="hidden sm:block w-px bg-slate-800 flex-none" />
+      {/* Main layout */}
+      <main className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Icon nav */}
+        <nav className="flex-none w-11 flex flex-col items-center py-2 gap-1 border-r border-slate-800">
+          <button
+            onClick={() => togglePanel('soulseek')}
+            title="Soulseek"
+            className={`
+              relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+              ${
+                activePanel === 'soulseek'
+                  ? 'bg-emerald-600/20 text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
+              }
+            `}
+          >
+            <Globe size={15} />
+            {hasSoulseekResults && activePanel !== 'soulseek' && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            )}
+          </button>
+        </nav>
+
+        {/* Soulseek panel (toggleable) */}
+        {activePanel === 'soulseek' && (
+          <>
+            <SearchPanel search={search} />
+            <div className="w-px bg-slate-800 flex-none" />
+          </>
+        )}
+
+        {/* Library */}
         <LibraryPanel
           library={library}
           player={player}

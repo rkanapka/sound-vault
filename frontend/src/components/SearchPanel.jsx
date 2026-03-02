@@ -100,7 +100,7 @@ export default function SearchPanel({ search }) {
   }
 
   return (
-    <section className="flex flex-col w-full sm:w-80 xl:w-96 flex-none min-h-0 sm:max-h-full max-h-[45vh]">
+    <section className="flex flex-col w-72 sm:w-80 xl:w-96 flex-none min-h-0">
       {/* Header */}
       <div className="flex-none p-3 border-b border-slate-800">
         <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2.5">
