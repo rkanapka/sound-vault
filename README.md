@@ -51,6 +51,8 @@ Edit `.env`:
 | Variable | Description |
 |---|---|
 | `MUSIC_DIR` | Absolute path to your music folder on the host |
+| `SLSKD_USERNAME` | Your Soulseek username |
+| `SLSKD_PASSWORD` | Your Soulseek password |
 | `NAVIDROME_USER` | Navidrome admin username (set after first login) |
 | `NAVIDROME_PASS` | Navidrome admin password (set after first login) |
 
