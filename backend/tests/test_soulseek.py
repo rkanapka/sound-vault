@@ -19,12 +19,15 @@ async def test_create_search(client):
 @pytest.mark.asyncio
 async def test_get_search_results(client):
     with respx.mock:
+        respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123").mock(
+            return_value=httpx.Response(200, json={"isComplete": False})
+        )
         respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123/responses").mock(
             return_value=httpx.Response(200, json=[])
         )
         r = await client.get("/api/soulseek/search/abc123")
     assert r.status_code == 200
-    assert r.json() == []
+    assert r.json() == {"isComplete": False, "responses": []}
 
 
 @pytest.mark.asyncio
@@ -63,8 +66,11 @@ async def test_create_search_upstream_error(client):
 @pytest.mark.asyncio
 async def test_get_search_results_upstream_error(client):
     with respx.mock:
-        respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123/responses").mock(
+        respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123").mock(
             return_value=httpx.Response(503, text="Service Unavailable")
+        )
+        respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123/responses").mock(
+            return_value=httpx.Response(200, json=[])
         )
         r = await client.get("/api/soulseek/search/abc123")
     assert r.status_code == 503
