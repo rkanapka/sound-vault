@@ -41,7 +41,7 @@ input[type='range'] {
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-runnable-track {
-  background: #374151;
+  background: linear-gradient(to right, #10b981 var(--range-pct, 0%), #374151 var(--range-pct, 0%));
   height: 3px;
   border-radius: 2px;
 }
@@ -59,7 +59,7 @@ input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 input[type='range']::-moz-range-track {
-  background: #374151;
+  background: linear-gradient(to right, #10b981 var(--range-pct, 0%), #374151 var(--range-pct, 0%));
   height: 3px;
   border-radius: 2px;
 }

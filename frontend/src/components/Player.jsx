@@ -136,6 +136,7 @@ export default function Player({ player, onShowDetails }) {
               onMouseUp={handleSeekEnd}
               onTouchEnd={handleSeekEnd}
               className="flex-1 h-1 cursor-pointer"
+              style={{ '--range-pct': `${displayProgress}%` }}
             />
             <span className="text-xs text-slate-600 tabular-nums w-8 flex-none">
               {fmtTime(duration)}
@@ -159,6 +160,7 @@ export default function Player({ player, onShowDetails }) {
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
             className="flex-1 h-1 cursor-pointer"
+            style={{ '--range-pct': `${volume * 100}%` }}
           />
         </div>
       </div>
