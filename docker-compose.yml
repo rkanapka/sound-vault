@@ -16,8 +16,6 @@ services:
     environment:
       - SLSKD_NO_AUTH=true          # local-only service, auth not needed
       - SLSKD_DOWNLOADS_DIR=/music
-      - SLSKD_SLSK_USERNAME=${SLSKD_USERNAME}
-      - SLSKD_SLSK_PASSWORD=${SLSKD_PASSWORD}
     volumes:
       - ./data:/app
       - ${MUSIC_DIR}/music:/music
