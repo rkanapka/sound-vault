@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 
 import httpx
@@ -36,13 +37,15 @@ async def create_search(body: SearchRequest, client: HttpClient):
 
 @router.get("/search/{search_id}")
 async def get_search_results(search_id: str, client: HttpClient):
-    r = await client.get(
-        f"{settings.slskd_url}/api/v0/searches/{search_id}/responses",
-        timeout=10,
+    state_r, responses_r = await asyncio.gather(
+        client.get(f"{settings.slskd_url}/api/v0/searches/{search_id}", timeout=10),
+        client.get(f"{settings.slskd_url}/api/v0/searches/{search_id}/responses", timeout=10),
     )
-    if not r.is_success:
-        raise HTTPException(status_code=r.status_code, detail=r.text)
-    return r.json()
+    if not state_r.is_success:
+        raise HTTPException(status_code=state_r.status_code, detail=state_r.text)
+    state = state_r.json()
+    responses = responses_r.json() if responses_r.is_success else []
+    return {"isComplete": state.get("isComplete", False), "responses": responses}
 
 
 @router.delete("/search/{search_id}")

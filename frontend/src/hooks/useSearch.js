@@ -49,8 +49,13 @@ export function useSearch() {
         searchIdRef.current = data.id
         pollTimer.current = setInterval(async () => {
           try {
-            const responses = await pollSearch(searchIdRef.current)
-            setResults(groupByUser(responses))
+            const data = await pollSearch(searchIdRef.current)
+            setResults(groupByUser(data.responses || []))
+            if (data.isComplete) {
+              clearInterval(pollTimer.current)
+              pollTimer.current = null
+              setSearching(false)
+            }
           } catch {
             // polling failures are non-fatal
           }
