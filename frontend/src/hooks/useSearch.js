@@ -26,13 +26,13 @@ export function useSearch() {
   const pollTimer = useRef(null)
   const searchIdRef = useRef(null)
 
-  const stopSearch = useCallback(() => {
+  const stopSearch = useCallback(async () => {
     if (pollTimer.current) {
       clearInterval(pollTimer.current)
       pollTimer.current = null
     }
     if (searchIdRef.current) {
-      apiStopSearch(searchIdRef.current).catch(() => {})
+      await apiStopSearch(searchIdRef.current).catch(() => {})
       searchIdRef.current = null
     }
     setSearching(false)
@@ -41,7 +41,7 @@ export function useSearch() {
   const startSearch = useCallback(
     async (q) => {
       if (!q.trim()) return
-      stopSearch()
+      await stopSearch()
       setResults({})
       setSearching(true)
       try {
