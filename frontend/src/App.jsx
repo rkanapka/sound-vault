@@ -8,12 +8,15 @@ import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
 import { Globe } from 'lucide-react'
 
+const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
+
 export default function App() {
   const player = usePlayer()
   const search = useSearch()
   const library = useLibrary()
   const [infoSong, setInfoSong] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
+  const [activeTab, setActiveTab] = useState('library')
 
   useEffect(() => {
     library.loadArtists()
@@ -29,6 +32,65 @@ export default function App() {
   }
 
   const hasSoulseekResults = Object.keys(search.results).length > 0
+
+  if (isEmbed) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden">
+        {/* Header */}
+        <header className="flex-none h-12 px-5 flex items-center gap-2.5 border-b border-slate-800">
+          <span className="text-emerald-400 text-lg leading-none">♫</span>
+          <span className="text-sm font-semibold tracking-wide text-slate-200">Sound Vault</span>
+        </header>
+
+        {/* Tab bar */}
+        <div className="flex-none flex border-b border-slate-800">
+          <button
+            onClick={() => setActiveTab('library')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'library'
+                ? 'text-emerald-400 border-emerald-400'
+                : 'text-slate-500 border-transparent hover:text-slate-300'
+            }`}
+          >
+            Library
+          </button>
+          <button
+            onClick={() => setActiveTab('soulseek')}
+            className={`relative px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === 'soulseek'
+                ? 'text-emerald-400 border-emerald-400'
+                : 'text-slate-500 border-transparent hover:text-slate-300'
+            }`}
+          >
+            Soulseek
+            {hasSoulseekResults && activeTab !== 'soulseek' && (
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            )}
+          </button>
+        </div>
+
+        {/* Active panel */}
+        <main className="flex flex-1 min-h-0 overflow-hidden">
+          {activeTab === 'library' ? (
+            <LibraryPanel
+              library={library}
+              player={player}
+              onPlay={handlePlay}
+              onShowInfo={setInfoSong}
+            />
+          ) : (
+            <SearchPanel search={search} embedded />
+          )}
+        </main>
+
+        {/* Persistent player bar */}
+        {player.song && <Player player={player} onShowDetails={() => setInfoSong(player.song)} />}
+
+        {/* Song detail modal */}
+        {infoSong && <NowPlaying song={infoSong} onClose={() => setInfoSong(null)} />}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden">
