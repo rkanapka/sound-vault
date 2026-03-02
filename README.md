@@ -1,5 +1,8 @@
 # Sound Vault
 
+[![CI](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/rkanapka/sound-vault/branch/main/graph/badge.svg)](https://codecov.io/gh/rkanapka/sound-vault)
+
 A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/navidrome/) and [slskd](https://github.com/slskd/slskd) into a single web interface.
 
 **Navidrome** is a self-hosted music server. It indexes your local music files, exposes them via the Subsonic API, and handles streaming. Sound Vault uses it as the music library backend - browsing artists and albums, playing songs, and fetching cover art all go through Navidrome.
