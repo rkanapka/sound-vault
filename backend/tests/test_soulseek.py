@@ -58,3 +58,26 @@ async def test_create_search_upstream_error(client):
         )
         r = await client.post("/api/soulseek/search", json={"query": "test"})
     assert r.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_get_search_results_upstream_error(client):
+    with respx.mock:
+        respx.get(f"{SLSKD_BASE}/api/v0/searches/abc123/responses").mock(
+            return_value=httpx.Response(503, text="Service Unavailable")
+        )
+        r = await client.get("/api/soulseek/search/abc123")
+    assert r.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_download_file_upstream_error(client):
+    with respx.mock:
+        respx.post(f"{SLSKD_BASE}/api/v0/transfers/downloads/user1").mock(
+            return_value=httpx.Response(503, text="Service Unavailable")
+        )
+        r = await client.post(
+            "/api/soulseek/download",
+            json={"username": "user1", "filename": "song.mp3", "size": 1234},
+        )
+    assert r.status_code == 503

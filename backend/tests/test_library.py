@@ -79,3 +79,84 @@ async def test_trigger_scan(client):
         r = await client.post("/api/library/scan")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
+
+
+@pytest.mark.asyncio
+async def test_get_song(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getSong.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(song={"id": "1", "title": "Creep"}))
+        )
+        r = await client.get("/api/library/song/1")
+    assert r.status_code == 200
+    assert r.json()["subsonic-response"]["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_get_song_auth_error(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getSong.view").mock(
+            return_value=httpx.Response(200, json=nd_fail(40, "Wrong username or password"))
+        )
+        r = await client.get("/api/library/song/1")
+    assert r.status_code == 401
+    assert "Navidrome error" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_stream_song(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/stream.view").mock(
+            return_value=httpx.Response(
+                200, content=b"audio-data", headers={"content-type": "audio/mpeg"}
+            )
+        )
+        r = await client.get("/api/library/stream/1")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "audio/mpeg"
+
+
+@pytest.mark.asyncio
+async def test_stream_song_forwards_range_header(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/stream.view").mock(
+            return_value=httpx.Response(
+                206,
+                content=b"partial",
+                headers={
+                    "content-type": "audio/mpeg",
+                    "content-range": "bytes 0-6/100",
+                    "accept-ranges": "bytes",
+                },
+            )
+        )
+        r = await client.get("/api/library/stream/1", headers={"Range": "bytes=0-6"})
+    assert r.status_code == 206
+    assert r.headers["content-range"] == "bytes 0-6/100"
+    assert route.calls[0].request.headers["range"] == "bytes=0-6"
+
+
+@pytest.mark.asyncio
+async def test_get_cover_art(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getCoverArt.view").mock(
+            return_value=httpx.Response(
+                200, content=b"image-data", headers={"content-type": "image/jpeg"}
+            )
+        )
+        r = await client.get("/api/library/art/1")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/jpeg"
+
+
+@pytest.mark.asyncio
+async def test_get_cover_art_size_param(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getCoverArt.view").mock(
+            return_value=httpx.Response(
+                200, content=b"image-data", headers={"content-type": "image/jpeg"}
+            )
+        )
+        r = await client.get("/api/library/art/1?size=400")
+    assert r.status_code == 200
+    assert "size=400" in str(route.calls[0].request.url)
