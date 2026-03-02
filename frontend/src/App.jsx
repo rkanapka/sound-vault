@@ -39,7 +39,6 @@ export default function App() {
         {/* Header */}
         <header className="flex-none h-12 px-5 flex items-center gap-2.5 border-b border-slate-800">
           <span className="text-emerald-400 text-lg leading-none">♫</span>
-          <span className="text-sm font-semibold tracking-wide text-slate-200">Sound Vault</span>
         </header>
 
         {/* Tab bar */}
