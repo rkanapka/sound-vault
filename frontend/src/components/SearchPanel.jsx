@@ -100,7 +100,13 @@ export default function SearchPanel({ search, embedded = false }) {
   }
 
   return (
-    <section className={embedded ? 'flex flex-col flex-1 min-h-0 w-full' : 'flex flex-col w-72 sm:w-80 xl:w-96 flex-none min-h-0'}>
+    <section
+      className={
+        embedded
+          ? 'flex flex-col flex-1 min-h-0 w-full'
+          : 'flex flex-col w-72 sm:w-80 xl:w-96 flex-none min-h-0'
+      }
+    >
       {/* Header */}
       <div className="flex-none p-3 border-b border-slate-800">
         <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2.5">
