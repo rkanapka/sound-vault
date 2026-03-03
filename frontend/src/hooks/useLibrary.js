@@ -25,6 +25,8 @@ export function useLibrary() {
       setArtists(all.sort((a, b) => a.name.localeCompare(b.name)))
       setView('artists')
       setBreadcrumbs([])
+      localStorage.removeItem('sv-lib-artist-id')
+      localStorage.removeItem('sv-lib-album-id')
     } catch (e) {
       setError(e.message)
     } finally {
@@ -43,6 +45,8 @@ export function useLibrary() {
       setAlbums(artistData.album || [])
       setView('artist')
       setBreadcrumbs([{ label: 'Artists', action: 'artists' }])
+      localStorage.setItem('sv-lib-artist-id', artist.id)
+      localStorage.removeItem('sv-lib-album-id')
     } catch (e) {
       setError(e.message)
     } finally {
@@ -50,34 +54,39 @@ export function useLibrary() {
     }
   }, [])
 
-  const goToAlbum = useCallback(
-    async (album) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await getAlbum(album.id)
-        const resp = data['subsonic-response']
-        const albumData = resp.album
-        setCurrentAlbum(albumData)
-        setTracks(albumData.song || [])
-        setView('album')
-        setBreadcrumbs([
-          { label: 'Artists', action: 'artists' },
-          { label: currentArtist?.name || album.artist || 'Artist', action: 'artist' },
-        ])
-      } catch (e) {
-        setError(e.message)
-      } finally {
-        setLoading(false)
-      }
-    },
-    [currentArtist]
-  )
-
-  const goBackToArtist = useCallback(() => {
-    setView('artist')
-    setBreadcrumbs([{ label: 'Artists', action: 'artists' }])
+  const goToAlbum = useCallback(async (album) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getAlbum(album.id)
+      const resp = data['subsonic-response']
+      const albumData = resp.album
+      setCurrentAlbum(albumData)
+      setTracks(albumData.song || [])
+      setView('album')
+      setBreadcrumbs([
+        { label: 'Artists', action: 'artists' },
+        { label: albumData.artist || 'Artist', action: 'artist' },
+      ])
+      localStorage.setItem('sv-lib-album-id', album.id)
+      if (albumData.artistId) localStorage.setItem('sv-lib-artist-id', albumData.artistId)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  const goBackToArtist = useCallback(async () => {
+    // If artist albums aren't loaded (e.g. after a page refresh that restored album view),
+    // re-fetch the artist so the back-navigation works correctly.
+    if (albums.length === 0 && currentAlbum?.artistId) {
+      await goToArtist({ id: currentAlbum.artistId })
+    } else {
+      setView('artist')
+      setBreadcrumbs([{ label: 'Artists', action: 'artists' }])
+    }
+  }, [albums, currentAlbum, goToArtist])
 
   const searchLib = useCallback(
     async (q) => {
@@ -136,6 +145,19 @@ export function useLibrary() {
     [pollScanDone]
   )
 
+  // Restore previous navigation on page load, or fall back to artists list
+  const init = useCallback(async () => {
+    const albumId = localStorage.getItem('sv-lib-album-id')
+    const artistId = localStorage.getItem('sv-lib-artist-id')
+    if (albumId) {
+      await goToAlbum({ id: albumId })
+    } else if (artistId) {
+      await goToArtist({ id: artistId })
+    } else {
+      await loadArtists()
+    }
+  }, [goToAlbum, goToArtist, loadArtists])
+
   return {
     view,
     artists,
@@ -148,6 +170,7 @@ export function useLibrary() {
     loading,
     error,
     scanning,
+    init,
     loadArtists,
     goToArtist,
     goToAlbum,

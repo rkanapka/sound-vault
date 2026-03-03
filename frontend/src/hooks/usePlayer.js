@@ -5,16 +5,33 @@ export function usePlayer() {
   const audioRef = useRef(null)
   if (!audioRef.current) audioRef.current = new Audio()
 
+  // Read saved playback state exactly once at mount
+  const initRef = useRef(null)
+  if (!initRef.current) {
+    const raw = localStorage.getItem('sv-queue')
+    const queue = raw ? JSON.parse(raw) : null
+    const index = parseInt(localStorage.getItem('sv-queue-index') ?? '-1', 10)
+    const time = parseFloat(localStorage.getItem('sv-time') ?? '0')
+    initRef.current = {
+      queue,
+      index: isNaN(index) ? -1 : index,
+      time: isNaN(time) ? 0 : time,
+    }
+  }
+
   // Refs for access inside event handlers (avoids stale closures)
-  const queueRef = useRef([])
-  const queueIndexRef = useRef(-1)
+  const queueRef = useRef(initRef.current.queue ?? [])
+  const queueIndexRef = useRef(initRef.current.index)
   const playAtRef = useRef(null)
   const repeatRef = useRef('off') // 'off' | 'all' | 'one'
+  const lastSavedTimeRef = useRef(0)
+
+  const { queue: initQueue, index: initIndex } = initRef.current
 
   const [state, setState] = useState(() => ({
-    song: null,
-    queue: [],
-    queueIndex: -1,
+    song: initQueue?.[initIndex] ?? null,
+    queue: initQueue ?? [],
+    queueIndex: initIndex,
     playing: false,
     currentTime: 0,
     duration: 0,
@@ -29,6 +46,11 @@ export function usePlayer() {
     audio.play().catch(console.error)
     queueRef.current = queue
     queueIndexRef.current = index
+    try {
+      localStorage.setItem('sv-queue', JSON.stringify(queue))
+      localStorage.setItem('sv-queue-index', index)
+      localStorage.setItem('sv-time', '0')
+    } catch {}
     setState((s) => ({
       ...s,
       song,
@@ -47,7 +69,32 @@ export function usePlayer() {
     const audio = audioRef.current
     audio.volume = parseFloat(localStorage.getItem('sv-volume') ?? '0.05')
 
-    const onTimeUpdate = () => setState((s) => ({ ...s, currentTime: audio.currentTime }))
+    // Restore previous song without auto-playing
+    const { queue, index, time } = initRef.current
+    if (queue && index >= 0 && queue[index]) {
+      audio.src = streamUrl(queue[index].id)
+      audio.addEventListener(
+        'loadedmetadata',
+        () => {
+          audio.currentTime = time
+          setState((s) => ({
+            ...s,
+            currentTime: time,
+            duration: isFinite(audio.duration) ? audio.duration : 0,
+          }))
+        },
+        { once: true }
+      )
+    }
+
+    const onTimeUpdate = () => {
+      setState((s) => ({ ...s, currentTime: audio.currentTime }))
+      // Throttle-save time every 5 seconds during playback
+      if (audio.currentTime - lastSavedTimeRef.current > 5) {
+        localStorage.setItem('sv-time', audio.currentTime)
+        lastSavedTimeRef.current = audio.currentTime
+      }
+    }
 
     const onDurationChange = () =>
       setState((s) => ({ ...s, duration: isFinite(audio.duration) ? audio.duration : 0 }))
@@ -70,7 +117,10 @@ export function usePlayer() {
     }
 
     const onPlay = () => setState((s) => ({ ...s, playing: true }))
-    const onPause = () => setState((s) => ({ ...s, playing: false }))
+    const onPause = () => {
+      setState((s) => ({ ...s, playing: false }))
+      localStorage.setItem('sv-time', audio.currentTime)
+    }
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('durationchange', onDurationChange)

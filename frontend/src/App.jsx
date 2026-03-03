@@ -19,7 +19,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('library')
 
   useEffect(() => {
-    library.loadArtists()
+    library.init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
