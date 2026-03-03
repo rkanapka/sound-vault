@@ -153,11 +153,19 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
                   onClick={() => goToArtist(artist)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
                 >
-                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center flex-none border border-slate-700/50 group-hover:border-slate-600 transition-colors">
-                    <Mic2
-                      size={12}
-                      className="text-slate-500 group-hover:text-emerald-400 transition-colors"
-                    />
+                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center flex-none border border-slate-700/50 group-hover:border-slate-600 transition-colors overflow-hidden">
+                    {artist.coverArt ? (
+                      <img
+                        src={artUrl(artist.coverArt, 56)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Mic2
+                        size={12}
+                        className="text-slate-500 group-hover:text-emerald-400 transition-colors"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-200 truncate">{artist.name}</p>
