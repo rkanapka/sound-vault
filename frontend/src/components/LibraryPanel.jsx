@@ -8,6 +8,8 @@ import {
   Mic2,
   AlertCircle,
   MoreHorizontal,
+  LayoutGrid,
+  LayoutList,
 } from 'lucide-react'
 import { artUrl, deleteSong } from '../api'
 import Breadcrumb from './Breadcrumb'
@@ -46,6 +48,9 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   const [openMenuId, setOpenMenuId] = useState(null)
   const [confirmSong, setConfirmSong] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [albumsView, setAlbumsView] = useState(
+    () => localStorage.getItem('sv-albums-view') ?? 'list'
+  )
 
   const reloadView = useCallback(() => {
     if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
@@ -196,42 +201,106 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
 
         {/* Artist albums view */}
         {!loading && !error && view === 'artist' && (
-          <ul className="py-1">
-            {albums.map((album) => (
-              <li key={album.id}>
+          <>
+            {/* View toggle */}
+            <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-800/50">
+              <div className="flex gap-0.5">
                 <button
-                  onClick={() => goToAlbum(album)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
+                  onClick={() => {
+                    setAlbumsView('list')
+                    localStorage.setItem('sv-albums-view', 'list')
+                  }}
+                  title="List view"
+                  className={`p-1.5 rounded transition-colors ${albumsView === 'list' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`}
                 >
-                  <div className="w-10 h-10 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50 group-hover:border-slate-600 transition-colors">
-                    {album.coverArt ? (
-                      <img
-                        src={artUrl(album.coverArt, 80)}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Disc size={16} className="text-slate-600" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 truncate">{album.name}</p>
-                    <p className="text-xs text-slate-600">
-                      {[album.year, album.songCount && `${album.songCount} tracks`]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    size={13}
-                    className="text-slate-700 group-hover:text-slate-500 transition-colors flex-none"
-                  />
+                  <LayoutList size={14} />
                 </button>
-              </li>
-            ))}
-          </ul>
+                <button
+                  onClick={() => {
+                    setAlbumsView('grid')
+                    localStorage.setItem('sv-albums-view', 'grid')
+                  }}
+                  title="Grid view"
+                  className={`p-1.5 rounded transition-colors ${albumsView === 'grid' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`}
+                >
+                  <LayoutGrid size={14} />
+                </button>
+              </div>
+            </div>
+
+            {albumsView === 'list' ? (
+              <ul className="py-1">
+                {albums.map((album) => (
+                  <li key={album.id}>
+                    <button
+                      onClick={() => goToAlbum(album)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50 group-hover:border-slate-600 transition-colors">
+                        {album.coverArt ? (
+                          <img
+                            src={artUrl(album.coverArt, 80)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Disc size={16} className="text-slate-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-200 truncate">{album.name}</p>
+                        <p className="text-xs text-slate-600">
+                          {[album.year, album.songCount && `${album.songCount} tracks`]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        size={13}
+                        className="text-slate-700 group-hover:text-slate-500 transition-colors flex-none"
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="grid grid-cols-4 gap-1 p-2">
+                {albums.map((album) => (
+                  <button
+                    key={album.id}
+                    onClick={() => goToAlbum(album)}
+                    className="flex flex-col gap-0 text-left group rounded-md p-1.5 hover:bg-slate-800/70 transition-colors"
+                  >
+                    <div className="aspect-square w-full rounded-sm bg-slate-800 overflow-hidden mb-1.5">
+                      {album.coverArt ? (
+                        <img
+                          src={artUrl(album.coverArt, 100)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Disc size={10} className="text-slate-600" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
+                      {album.name}
+                    </p>
+                    {(album.year || album.songCount) && (
+                      <p className="text-[9px] text-slate-500 truncate w-full leading-snug">
+                        {[album.year, album.songCount && `${album.songCount}tr`]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Album tracks view */}
