@@ -380,10 +380,19 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
                           onClick={() => onPlay(song, searchResults.songs)}
                           className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-left min-w-0"
                         >
-                          <Music
-                            size={12}
-                            className={`flex-none ${isActive ? 'text-emerald-400' : 'text-slate-600'}`}
-                          />
+                          {isActive && player.playing ? (
+                            <span className="sv-eq flex-none">
+                              <span />
+                              <span />
+                              <span />
+                              <span />
+                            </span>
+                          ) : (
+                            <Music
+                              size={12}
+                              className={`flex-none ${isActive ? 'text-emerald-400' : 'text-slate-600'}`}
+                            />
+                          )}
                           <div className="flex-1 min-w-0">
                             <p
                               className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
