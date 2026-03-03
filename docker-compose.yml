@@ -1,15 +1,20 @@
 services:
   sound-vault:
-    build: .
+    image: kanrim/sound-vault:${SOUNDVAULT_IMAGE_TAG:-latest}
     container_name: sound-vault
     restart: unless-stopped
+    depends_on:
+      - navidrome
+      - slskd
     environment:
       - NAVIDROME_USER=${NAVIDROME_USER}
       - NAVIDROME_PASS=${NAVIDROME_PASS}
+      - NAVIDROME_URL=${NAVIDROME_URL:-http://navidrome:4533}
+      - SLSKD_URL=${SLSKD_URL:-http://slskd:5030}
     volumes:
       - ${MUSIC_DIR}/music:/music
     ports:
-      - 8080:8080
+      - ${SOUNDVAULT_PORT:-8080}:8080
 
   slskd:
     image: slskd/slskd:latest
@@ -21,7 +26,7 @@ services:
       - SLSKD_SLSK_USERNAME=${SLSKD_USERNAME}
       - SLSKD_SLSK_PASSWORD=${SLSKD_PASSWORD}
     volumes:
-      - ./data:/app
+      - ${DATA_DIR:-./data}:/app
       - ${MUSIC_DIR}/music:/music
     ports:
       - 5030:5030    # web UI (local network only)
@@ -37,7 +42,7 @@ services:
       ND_SESSIONTIMEOUT: 24h
       ND_BASEURL: ""
     volumes:
-      - ./data:/data
+      - ${DATA_DIR:-./data}:/data
       - ${MUSIC_DIR}/music:/music:ro
     ports:
       - 4533:4533

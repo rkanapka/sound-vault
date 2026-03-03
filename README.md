@@ -91,30 +91,39 @@ docker compose up -d --build  # rebuild image and restart (after code changes)
 docker compose ps             # show running services and their status
 ```
 
-## Docker image
+## Homelab / external use
 
-Pull a published release image:
+To run sound-vault without cloning the repo, download the compose file and environment template:
 
 ```bash
-docker pull kanrim/sound-vault:1.2.3
+curl -O https://raw.githubusercontent.com/rkanapka/sound-vault/main/docker-compose.yml
+curl -o .env https://raw.githubusercontent.com/rkanapka/sound-vault/main/.env.example
 ```
 
-Use the published image in Compose instead of local `build: .`:
+Edit `.env` with your settings, then start everything:
 
-```yaml
-services:
-  sound-vault:
-    image: kanrim/sound-vault:1.2.3
-    container_name: sound-vault
-    restart: unless-stopped
-    environment:
-      - NAVIDROME_USER=${NAVIDROME_USER}
-      - NAVIDROME_PASS=${NAVIDROME_PASS}
-    ports:
-      - 8080:8080
+```bash
+docker compose up -d
 ```
 
-For production deployments, prefer pinned tags like `1.2.3`. Use `latest` only if you want a rolling release.
+navidrome and slskd are included in the compose file - nothing to copy-paste.
+
+**Pinning a version**
+
+Set `SOUNDVAULT_IMAGE_TAG` in `.env` to lock to a specific release:
+
+```
+SOUNDVAULT_IMAGE_TAG=1.2.3
+```
+
+Leave it as `latest` for rolling updates. Re-download `docker-compose.yml` to pick up upstream
+changes to the navidrome/slskd service definitions.
+
+**Remapping the host port**
+
+```
+SOUNDVAULT_PORT=7070
+```
 
 ## Development
 

@@ -1,0 +1,6 @@
+# Development override — automatically applied by Docker Compose when running locally.
+# Not intended for homelab/external use.
+services:
+  sound-vault:
+    build: .
+    image: sound-vault:dev
