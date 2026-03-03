@@ -1,13 +1,13 @@
-# Sound Vault
+# SoundVault
 
 [![CI](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/rkanapka/sound-vault/branch/main/graph/badge.svg)](https://codecov.io/gh/rkanapka/sound-vault)
 
 A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/navidrome/) and [slskd](https://github.com/slskd/slskd) into a single web interface.
 
-**Navidrome** is a self-hosted music server. It indexes your local music files, exposes them via the Subsonic API, and handles streaming. Sound Vault uses it as the music library backend - browsing artists and albums, playing songs, and fetching cover art all go through Navidrome.
+**Navidrome** is a self-hosted music server. It indexes your local music files, exposes them via the Subsonic API, and handles streaming. SoundVault uses it as the music library backend - browsing artists and albums, playing songs, and fetching cover art all go through Navidrome.
 
-**Soulseek** is a peer-to-peer network for sharing music. slskd is a self-hosted Soulseek client with an HTTP API. Sound Vault uses it to search the Soulseek network and queue downloads directly from the UI - so you can find a release, download it, and it lands in your music folder where Navidrome picks it up after a scan.
+**Soulseek** is a peer-to-peer network for sharing music. slskd is a self-hosted Soulseek client with an HTTP API. SoundVault uses it to search the Soulseek network and queue downloads directly from the UI - so you can find a release, download it, and it lands in your music folder where Navidrome picks it up after a scan.
 
 ## Architecture
 
@@ -75,7 +75,7 @@ docker compose up -d
 
 | Service | URL | Notes |
 |---|---|---|
-| Sound Vault | `http://localhost:8080` | Main app |
+| SoundVault | `http://localhost:8080` | Main app |
 | Navidrome | `http://localhost:4533` | Direct access |
 | slskd | `http://localhost:5030` | Direct access |
 
