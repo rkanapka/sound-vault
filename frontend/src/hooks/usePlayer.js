@@ -11,6 +11,8 @@ export function usePlayer() {
   const playAtRef = useRef(null)
   const repeatRef = useRef('off') // 'off' | 'all' | 'one'
 
+  const savedVolume = parseFloat(localStorage.getItem('sv-volume') ?? '0.05')
+
   const [state, setState] = useState({
     song: null,
     queue: [],
@@ -18,7 +20,7 @@ export function usePlayer() {
     playing: false,
     currentTime: 0,
     duration: 0,
-    volume: 0.05,
+    volume: savedVolume,
     repeat: 'off',
   })
 
@@ -45,7 +47,7 @@ export function usePlayer() {
 
   useEffect(() => {
     const audio = audioRef.current
-    audio.volume = 0.05
+    audio.volume = savedVolume
 
     const onTimeUpdate = () => setState((s) => ({ ...s, currentTime: audio.currentTime }))
 
@@ -121,6 +123,7 @@ export function usePlayer() {
 
   const setVolume = useCallback((vol) => {
     audioRef.current.volume = vol
+    localStorage.setItem('sv-volume', vol)
     setState((s) => ({ ...s, volume: vol }))
   }, [])
 
