@@ -248,12 +248,21 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
                     onClick={() => onPlay(track, tracks)}
                     className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                   >
-                    <span
-                      className={`w-5 text-xs text-right flex-none tabular-nums
-                        ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}
-                      `}
-                    >
-                      {isActive && player.playing ? '▶' : track.track || idx + 1}
+                    <span className="w-5 flex items-center justify-center flex-none">
+                      {isActive && player.playing ? (
+                        <span className="sv-eq">
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                        >
+                          {track.track || idx + 1}
+                        </span>
+                      )}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p

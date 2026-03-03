@@ -154,7 +154,7 @@ export default function Player({ player, onShowDetails }) {
             >
               {hoverTime !== null && (
                 <div
-                  className="absolute -top-6 bg-slate-700 text-slate-200 text-xs px-1.5 py-0.5 rounded pointer-events-none -translate-x-1/2 whitespace-nowrap"
+                  className="absolute -top-3 bg-slate-700 text-slate-200 text-xs px-1.5 py-0.5 rounded pointer-events-none -translate-x-1/2 whitespace-nowrap"
                   style={{ left: `${(hoverTime / duration) * 100}%` }}
                 >
                   {fmtTime(hoverTime)}
