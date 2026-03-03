@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2, VolumeX } from 'lucide-react'
 import { artUrl } from '../api'
 
@@ -29,6 +29,17 @@ export default function Player({ player, onShowDetails }) {
   const [dragValue, setDragValue] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
 
+  // Progress bar hover tooltip
+  const progressBarRef = useRef(null)
+  const [hoverTime, setHoverTime] = useState(null)
+
+  const handleProgressMouseMove = (e) => {
+    if (!duration || !progressBarRef.current) return
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setHoverTime(pct * duration)
+  }
+
   const progress = duration ? (currentTime / duration) * 100 : 0
   const displayProgress = isDragging && dragValue !== null ? dragValue : progress
 
@@ -58,9 +69,20 @@ export default function Player({ player, onShowDetails }) {
           onClick={onShowDetails}
           className="flex items-center gap-3 flex-none group min-w-0 text-left"
         >
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md overflow-hidden flex-none bg-slate-800 border border-slate-700/50 group-hover:border-slate-600 transition-colors">
+          <div
+            className={`w-10 h-10 sm:w-11 sm:h-11 flex-none bg-slate-800 border overflow-hidden transition-all duration-500 ${
+              playing
+                ? 'rounded-full border-emerald-500/40 shadow-md shadow-emerald-900/40'
+                : 'rounded-md border-slate-700/50 group-hover:border-slate-600'
+            }`}
+          >
             {song.coverArt ? (
-              <img src={artUrl(song.coverArt, 88)} alt="" className="w-full h-full object-cover" />
+              <img
+                src={artUrl(song.coverArt, 88)}
+                alt=""
+                className="w-full h-full object-cover sv-album-spin"
+                style={{ animationPlayState: playing ? 'running' : 'paused' }}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-600 text-sm">
                 ♫
@@ -124,20 +146,35 @@ export default function Player({ player, onShowDetails }) {
             <span className="text-xs text-slate-600 tabular-nums w-8 text-right flex-none">
               {fmtTime(isDragging ? (dragValue / 100) * duration : currentTime)}
             </span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="0.1"
-              value={displayProgress}
-              onMouseDown={handleSeekStart}
-              onTouchStart={handleSeekStart}
-              onChange={handleSeekChange}
-              onMouseUp={handleSeekEnd}
-              onTouchEnd={handleSeekEnd}
-              className="flex-1 h-1 cursor-pointer"
-              style={{ '--range-pct': `${displayProgress}%` }}
-            />
+            <div
+              ref={progressBarRef}
+              className="relative flex-1"
+              onMouseMove={handleProgressMouseMove}
+              onMouseLeave={() => setHoverTime(null)}
+            >
+              {hoverTime !== null && (
+                <div
+                  className="absolute -top-6 bg-slate-700 text-slate-200 text-xs px-1.5 py-0.5 rounded pointer-events-none -translate-x-1/2 whitespace-nowrap"
+                  style={{ left: `${(hoverTime / duration) * 100}%` }}
+                >
+                  {fmtTime(hoverTime)}
+                </div>
+              )}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value={displayProgress}
+                onMouseDown={handleSeekStart}
+                onTouchStart={handleSeekStart}
+                onChange={handleSeekChange}
+                onMouseUp={handleSeekEnd}
+                onTouchEnd={handleSeekEnd}
+                className="w-full h-1 cursor-pointer"
+                style={{ '--range-pct': `${displayProgress}%` }}
+              />
+            </div>
             <span className="text-xs text-slate-600 tabular-nums w-8 flex-none">
               {fmtTime(duration)}
             </span>

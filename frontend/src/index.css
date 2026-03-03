@@ -70,3 +70,18 @@ input[type='range']::-moz-range-thumb {
   border-radius: 50%;
   border: none;
 }
+
+/* Album art slow spin */
+@keyframes sv-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sv-album-spin {
+  animation: sv-spin 20s linear infinite;
+  animation-play-state: paused;
+}
