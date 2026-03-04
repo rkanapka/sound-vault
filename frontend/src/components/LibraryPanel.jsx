@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   Search,
   RefreshCw,
@@ -51,6 +51,29 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   const [albumsView, setAlbumsView] = useState(
     () => localStorage.getItem('sv-albums-view') ?? 'list'
   )
+  const [albumsSort, setAlbumsSort] = useState(
+    () => localStorage.getItem('sv-albums-sort') ?? 'year-asc'
+  )
+  const [tracksSort, setTracksSort] = useState(
+    () => localStorage.getItem('sv-tracks-sort') ?? 'track'
+  )
+
+  const sortedAlbums = useMemo(() => {
+    const arr = [...albums]
+    if (albumsSort === 'year-asc') return arr.sort((a, b) => (a.year ?? 0) - (b.year ?? 0))
+    if (albumsSort === 'year-desc') return arr.sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
+    if (albumsSort === 'name-asc') return arr.sort((a, b) => a.name.localeCompare(b.name))
+    if (albumsSort === 'name-desc') return arr.sort((a, b) => b.name.localeCompare(a.name))
+    return arr
+  }, [albums, albumsSort])
+
+  const sortedTracks = useMemo(() => {
+    const arr = [...tracks]
+    if (tracksSort === 'track') return arr.sort((a, b) => (a.track ?? 999) - (b.track ?? 999))
+    if (tracksSort === 'title') return arr.sort((a, b) => a.title.localeCompare(b.title))
+    if (tracksSort === 'duration') return arr.sort((a, b) => (a.duration ?? 0) - (b.duration ?? 0))
+    return arr
+  }, [tracks, tracksSort])
 
   const reloadView = useCallback(() => {
     if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
@@ -202,8 +225,21 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
         {/* Artist albums view */}
         {!loading && !error && view === 'artist' && (
           <>
-            {/* View toggle */}
-            <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-800/50">
+            {/* View toggle + sort */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/50">
+              <select
+                value={albumsSort}
+                onChange={(e) => {
+                  setAlbumsSort(e.target.value)
+                  localStorage.setItem('sv-albums-sort', e.target.value)
+                }}
+                className="text-[10px] text-slate-400 bg-slate-900 border-none outline-none cursor-pointer hover:text-slate-200 transition-colors"
+              >
+                <option value="year-asc">Year ↑</option>
+                <option value="year-desc">Year ↓</option>
+                <option value="name-asc">Name A–Z</option>
+                <option value="name-desc">Name Z–A</option>
+              </select>
               <div className="flex gap-0.5">
                 <button
                   onClick={() => {
@@ -230,7 +266,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
 
             {albumsView === 'list' ? (
               <ul className="py-1">
-                {albums.map((album) => (
+                {sortedAlbums.map((album) => (
                   <li key={album.id}>
                     <button
                       onClick={() => goToAlbum(album)}
@@ -267,7 +303,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
               </ul>
             ) : (
               <div className="grid grid-cols-4 gap-1 p-2">
-                {albums.map((album) => (
+                {sortedAlbums.map((album) => (
                   <button
                     key={album.id}
                     onClick={() => goToAlbum(album)}
@@ -305,69 +341,102 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
 
         {/* Album tracks view */}
         {!loading && !error && view === 'album' && (
-          <ul className="py-1">
-            {tracks.map((track, idx) => {
-              const isActive = player.song?.id === track.id
-              return (
-                <li
-                  key={track.id}
-                  className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
-                >
-                  <button
-                    onClick={() => onPlay(track, tracks)}
-                    className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
+          <>
+            {/* Tracks sort header */}
+            <div className="flex items-center px-4 py-1 border-b border-slate-800/50 select-none">
+              <button
+                onClick={() => {
+                  setTracksSort('track')
+                  localStorage.setItem('sv-tracks-sort', 'track')
+                }}
+                className={`w-5 text-center mr-3 text-[10px] hover:text-slate-400 transition-colors ${tracksSort === 'track' ? 'text-emerald-400' : 'text-slate-600'}`}
+              >
+                #
+              </button>
+              <button
+                onClick={() => {
+                  setTracksSort('title')
+                  localStorage.setItem('sv-tracks-sort', 'title')
+                }}
+                className={`flex-1 text-left text-[10px] hover:text-slate-400 transition-colors ${tracksSort === 'title' ? 'text-emerald-400' : 'text-slate-600'}`}
+              >
+                Title
+              </button>
+              <button
+                onClick={() => {
+                  setTracksSort('duration')
+                  localStorage.setItem('sv-tracks-sort', 'duration')
+                }}
+                className={`text-[10px] hover:text-slate-400 transition-colors ${tracksSort === 'duration' ? 'text-emerald-400' : 'text-slate-600'}`}
+              >
+                Time
+              </button>
+              <div className="w-9" />
+            </div>
+            <ul className="py-1">
+              {sortedTracks.map((track, idx) => {
+                const isActive = player.song?.id === track.id
+                return (
+                  <li
+                    key={track.id}
+                    className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
                   >
-                    <span className="w-5 flex items-center justify-center flex-none">
-                      {isActive && player.playing ? (
-                        <span className="sv-eq">
-                          <span />
-                          <span />
-                          <span />
-                          <span />
-                        </span>
-                      ) : (
-                        <span
-                          className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
-                        >
-                          {track.track || idx + 1}
-                        </span>
-                      )}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
-                      >
-                        {track.title}
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Duration + 3-dot menu */}
-                  <div className="flex items-center gap-1 pr-2 flex-none">
-                    <span className="text-xs text-slate-600 tabular-nums">
-                      {fmtDuration(track.duration)}
-                    </span>
                     <button
-                      onClick={() => setOpenMenuId(openMenuId === track.id ? null : track.id)}
-                      className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                      title="More options"
+                      onClick={() => onPlay(track, tracks)}
+                      className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                     >
-                      <MoreHorizontal size={14} />
+                      <span className="w-5 flex items-center justify-center flex-none">
+                        {isActive && player.playing ? (
+                          <span className="sv-eq">
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                          >
+                            {track.track || idx + 1}
+                          </span>
+                        )}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
+                        >
+                          {track.title}
+                        </p>
+                      </div>
                     </button>
-                  </div>
 
-                  {openMenuId === track.id && (
-                    <SongMenu
-                      song={track}
-                      onInfo={onShowInfo}
-                      onDelete={setConfirmSong}
-                      onClose={() => setOpenMenuId(null)}
-                    />
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+                    {/* Duration + 3-dot menu */}
+                    <div className="flex items-center gap-1 pr-2 flex-none">
+                      <span className="text-xs text-slate-600 tabular-nums">
+                        {fmtDuration(track.duration)}
+                      </span>
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === track.id ? null : track.id)}
+                        className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                        title="More options"
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </div>
+
+                    {openMenuId === track.id && (
+                      <SongMenu
+                        song={track}
+                        onInfo={onShowInfo}
+                        onDelete={setConfirmSong}
+                        onClose={() => setOpenMenuId(null)}
+                      />
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
         )}
 
         {/* Search results view */}
