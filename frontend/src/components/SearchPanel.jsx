@@ -16,12 +16,18 @@ function ResultGroup({ username, files }) {
   const [states, setStates] = useState({})
 
   const handleDownload = async (file) => {
+    if (file.alreadyDownloaded) return
     setStates((s) => ({ ...s, [file.filename]: 'loading' }))
     try {
       await downloadFile(username, file.filename, file.size)
       setStates((s) => ({ ...s, [file.filename]: 'done' }))
-    } catch {
-      setStates((s) => ({ ...s, [file.filename]: 'error' }))
+    } catch (e) {
+      const message = String(e).toLowerCase()
+      if (message.includes('already downloaded')) {
+        setStates((s) => ({ ...s, [file.filename]: 'downloaded' }))
+      } else {
+        setStates((s) => ({ ...s, [file.filename]: 'error' }))
+      }
     }
   }
 
@@ -36,8 +42,26 @@ function ResultGroup({ username, files }) {
       <div>
         {files.map((file) => {
           const st = states[file.filename]
+          const isDownloaded = !!file.alreadyDownloaded
           const name = basename(file.filename)
           const ext = name.split('.').pop().toUpperCase()
+          let btnClass =
+            'bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white opacity-0 group-hover:opacity-100'
+          let btnLabel = <Download size={11} />
+          if (isDownloaded || st === 'downloaded') {
+            btnClass = 'bg-emerald-900/30 text-emerald-500 cursor-default opacity-100'
+            btnLabel = 'Downloaded'
+          } else if (st === 'loading') {
+            btnClass = 'bg-slate-700/60 text-slate-500 cursor-default'
+            btnLabel = <Loader2 size={11} className="animate-spin" />
+          } else if (st === 'done') {
+            btnClass = 'bg-emerald-900/30 text-emerald-500 cursor-default'
+            btnLabel = '✓ Queued'
+          } else if (st === 'error') {
+            btnClass = 'bg-red-900/30 text-red-400 cursor-default'
+            btnLabel = '✗ Error'
+          }
+
           return (
             <div
               key={file.filename}
@@ -56,29 +80,13 @@ function ResultGroup({ username, files }) {
               </div>
               <button
                 onClick={() => handleDownload(file)}
-                disabled={!!st}
+                disabled={isDownloaded || !!st}
                 className={`
                   flex-none flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all
-                  ${
-                    st === 'done'
-                      ? 'bg-emerald-900/30 text-emerald-500 cursor-default'
-                      : st === 'error'
-                        ? 'bg-red-900/30 text-red-400 cursor-default'
-                        : st === 'loading'
-                          ? 'bg-slate-700/60 text-slate-500 cursor-default'
-                          : 'bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white opacity-0 group-hover:opacity-100'
-                  }
+                  ${btnClass}
                 `}
               >
-                {st === 'loading' ? (
-                  <Loader2 size={11} className="animate-spin" />
-                ) : st === 'done' ? (
-                  '✓ Queued'
-                ) : st === 'error' ? (
-                  '✗ Error'
-                ) : (
-                  <Download size={11} />
-                )}
+                {btnLabel}
               </button>
             </div>
           )
