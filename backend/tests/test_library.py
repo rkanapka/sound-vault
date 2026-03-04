@@ -179,7 +179,7 @@ def _mock_delete_prereqs(song_path: str, token: str = "tok"):
 
 @pytest.mark.asyncio
 async def test_delete_song(client, monkeypatch, tmp_path):
-    import routers.library as lib
+    import routers.library.files as lib
     from config import Settings
 
     song_file = tmp_path / "Artist" / "Album" / "song.mp3"
@@ -201,7 +201,7 @@ async def test_delete_song(client, monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_delete_song_path_outside_music_dir(client, monkeypatch, tmp_path):
-    import routers.library as lib
+    import routers.library.files as lib
     from config import Settings
 
     monkeypatch.setattr(lib, "settings", Settings(music_dir=str(tmp_path)))
@@ -215,7 +215,7 @@ async def test_delete_song_path_outside_music_dir(client, monkeypatch, tmp_path)
 
 @pytest.mark.asyncio
 async def test_delete_song_file_not_on_disk(client, monkeypatch, tmp_path):
-    import routers.library as lib
+    import routers.library.files as lib
     from config import Settings
 
     monkeypatch.setattr(lib, "settings", Settings(music_dir=str(tmp_path)))
