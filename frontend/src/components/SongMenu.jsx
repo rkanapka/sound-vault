@@ -1,6 +1,6 @@
-import { Info, Trash2 } from 'lucide-react'
+import { Info, ListPlus, Trash2 } from 'lucide-react'
 
-export default function SongMenu({ song, onInfo, onDelete, onClose }) {
+export default function SongMenu({ song, onInfo, onDelete, onAddToPlaylist, onClose }) {
   return (
     <>
       {/* Transparent backdrop to close on outside click */}
@@ -18,6 +18,18 @@ export default function SongMenu({ song, onInfo, onDelete, onClose }) {
           <Info size={14} className="text-slate-400 flex-none" />
           Song Info
         </button>
+        {onAddToPlaylist && (
+          <button
+            onClick={() => {
+              onAddToPlaylist(song)
+              onClose()
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors text-left"
+          >
+            <ListPlus size={14} className="text-slate-400 flex-none" />
+            Add to playlist
+          </button>
+        )}
         <div className="h-px bg-slate-700 mx-2 my-1" />
         <button
           onClick={() => {

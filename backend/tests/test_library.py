@@ -349,3 +349,92 @@ async def test_get_scan_status_while_scanning(client):
 
     assert r.status_code == 200
     assert r.json()["subsonic-response"]["scanStatus"]["scanning"] is True
+
+
+# ---------------------------------------------------------------------------
+# playlists
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_playlists(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getPlaylists.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(playlists={"playlist": []}))
+        )
+        r = await client.get("/api/library/playlists")
+    assert r.status_code == 200
+    assert r.json()["subsonic-response"]["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_get_playlist(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getPlaylist.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(playlist={"id": "pl1", "name": "Favs"}))
+        )
+        r = await client.get("/api/library/playlist/pl1")
+    assert r.status_code == 200
+    assert r.json()["subsonic-response"]["playlist"]["id"] == "pl1"
+
+
+@pytest.mark.asyncio
+async def test_create_playlist_with_initial_songs(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/createPlaylist.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(playlist={"id": "pl1", "name": "Roadtrip"}))
+        )
+        r = await client.post(
+            "/api/library/playlists", json={"name": "Roadtrip", "song_ids": ["s1", "s2"]}
+        )
+    assert r.status_code == 201
+    url = str(route.calls[0].request.url)
+    assert "name=Roadtrip" in url
+    assert "songId=s1" in url
+    assert "songId=s2" in url
+
+
+@pytest.mark.asyncio
+async def test_update_playlist_rename_add_and_remove(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/updatePlaylist.view").mock(
+            return_value=httpx.Response(200, json=nd_ok())
+        )
+        r = await client.put(
+            "/api/library/playlist/pl1",
+            json={
+                "name": "Renamed",
+                "song_ids_to_add": ["s9"],
+                "song_indexes_to_remove": [0, 2],
+            },
+        )
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    url = str(route.calls[0].request.url)
+    assert "playlistId=pl1" in url
+    assert "name=Renamed" in url
+    assert "songIdToAdd=s9" in url
+    assert "songIndexToRemove=0" in url
+    assert "songIndexToRemove=2" in url
+
+
+@pytest.mark.asyncio
+async def test_delete_playlist(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/deletePlaylist.view").mock(
+            return_value=httpx.Response(200, json=nd_ok())
+        )
+        r = await client.delete("/api/library/playlist/pl1")
+    assert r.status_code == 204
+    assert "id=pl1" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_playlist_auth_error(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getPlaylists.view").mock(
+            return_value=httpx.Response(200, json=nd_fail(40, "Wrong username or password"))
+        )
+        r = await client.get("/api/library/playlists")
+    assert r.status_code == 401
+    assert "Navidrome error" in r.json()["detail"]

@@ -40,6 +40,14 @@ export const deleteSong = (id) => apiFetch('DELETE', `/api/library/song/${id}`)
 export const scrobbleSong = (id) =>
   apiFetch('POST', `/api/library/scrobble?id=${encodeURIComponent(id)}`)
 
+// --- Playlists ---
+export const getPlaylists = () => apiFetch('GET', '/api/library/playlists')
+export const getPlaylist = (id) => apiFetch('GET', `/api/library/playlist/${id}`)
+export const createPlaylist = (name, songIds = []) =>
+  apiFetch('POST', '/api/library/playlists', { name, song_ids: songIds })
+export const updatePlaylist = (id, patch) => apiFetch('PUT', `/api/library/playlist/${id}`, patch)
+export const deletePlaylist = (id) => apiFetch('DELETE', `/api/library/playlist/${id}`)
+
 // URL helpers - used directly as <audio src> and <img src>
 export const streamUrl = (id) => `/api/library/stream/${id}`
 export const artUrl = (id, size = 200) => `/api/library/art/${id}?size=${size}`

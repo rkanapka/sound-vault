@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { usePlayer } from './hooks/usePlayer'
 import { useSearch } from './hooks/useSearch'
 import { useLibrary } from './hooks/useLibrary'
+import { usePlaylists } from './hooks/usePlaylists'
 import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
@@ -14,12 +15,14 @@ export default function App() {
   const player = usePlayer()
   const search = useSearch()
   const library = useLibrary()
+  const playlists = usePlaylists()
   const [infoSong, setInfoSong] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
   const [activeTab, setActiveTab] = useState('library')
 
   useEffect(() => {
     library.init()
+    playlists.init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -71,6 +74,7 @@ export default function App() {
               player={player}
               onPlay={handlePlay}
               onShowInfo={setInfoSong}
+              playlists={playlists}
             />
           ) : (
             <SearchPanel search={search} embedded />
@@ -148,6 +152,7 @@ export default function App() {
           player={player}
           onPlay={handlePlay}
           onShowInfo={setInfoSong}
+          playlists={playlists}
         />
       </main>
 
