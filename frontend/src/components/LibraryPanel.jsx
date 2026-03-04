@@ -26,6 +26,8 @@ function fmtDuration(secs) {
 export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   const {
     view,
+    newestAlbums,
+    recentAlbums,
     artists,
     albums,
     currentAlbum,
@@ -35,6 +37,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
     loading,
     error,
     scanning,
+    loadHome,
     loadArtists,
     goToArtist,
     goToAlbum,
@@ -78,8 +81,9 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   const reloadView = useCallback(() => {
     if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
     else if (view === 'search') searchLib(libQuery)
+    else if (view === 'home') loadHome()
     else loadArtists()
-  }, [view, currentAlbum, goToAlbum, searchLib, libQuery, loadArtists])
+  }, [view, currentAlbum, goToAlbum, searchLib, libQuery, loadHome, loadArtists])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -87,7 +91,10 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
   }
 
   const handleBreadcrumb = (action) => {
-    if (action === 'artists') {
+    if (action === 'home') {
+      setLibQuery('')
+      loadHome()
+    } else if (action === 'artists') {
       setLibQuery('')
       loadArtists()
     } else if (action === 'artist') {
@@ -169,6 +176,63 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo }) {
           <div className="m-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg flex items-start gap-2 text-sm text-red-400">
             <AlertCircle size={15} className="flex-none mt-0.5" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Home view */}
+        {!loading && !error && view === 'home' && (
+          <div className="py-3">
+            {[
+              { label: 'Recently Added', albums: newestAlbums },
+              { label: 'Recently Played', albums: recentAlbums },
+            ].map(({ label, albums: list }) => (
+              <div key={label} className="mb-4">
+                <p className="px-4 mb-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                  {label}
+                </p>
+                {list.length === 0 ? (
+                  <p className="px-4 text-xs text-slate-700">Nothing here yet</p>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none">
+                    {list.map((album) => (
+                      <button
+                        key={album.id}
+                        onClick={() => goToAlbum(album)}
+                        className="flex-none w-20 group text-left"
+                      >
+                        <div className="w-20 h-20 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 group-hover:border-slate-500 transition-colors mb-1">
+                          {album.coverArt ? (
+                            <img
+                              src={artUrl(album.coverArt, 160)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Disc size={20} className="text-slate-600" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-300 truncate leading-snug group-hover:text-white transition-colors">
+                          {album.name}
+                        </p>
+                        <p className="text-[9px] text-slate-600 truncate leading-snug">
+                          {album.artist}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            <div className="px-4 pt-2 border-t border-slate-800/50">
+              <button
+                onClick={loadArtists}
+                className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+              >
+                Browse all artists →
+              </button>
+            </div>
           </div>
         )}
 

@@ -32,9 +32,13 @@ export const getAlbum = (id) => apiFetch('GET', `/api/library/album/${id}`)
 export const getSong = (id) => apiFetch('GET', `/api/library/song/${id}`)
 export const searchLibrary = (q) =>
   apiFetch('GET', `/api/library/search?q=${encodeURIComponent(q)}`)
+export const getAlbumList = (type, size = 20) =>
+  apiFetch('GET', `/api/library/album-list?type=${type}&size=${size}`)
 export const triggerScan = () => apiFetch('POST', '/api/library/scan')
 export const getScanStatus = () => apiFetch('GET', '/api/library/scan-status')
 export const deleteSong = (id) => apiFetch('DELETE', `/api/library/song/${id}`)
+export const scrobbleSong = (id) =>
+  apiFetch('POST', `/api/library/scrobble?id=${encodeURIComponent(id)}`)
 
 // URL helpers - used directly as <audio src> and <img src>
 export const streamUrl = (id) => `/api/library/stream/${id}`

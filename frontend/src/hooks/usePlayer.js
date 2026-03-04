@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { streamUrl } from '../api'
+import { streamUrl, scrobbleSong } from '../api'
 
 export function usePlayer() {
   const audioRef = useRef(null)
@@ -103,6 +103,7 @@ export function usePlayer() {
       const queue = queueRef.current
       const idx = queueIndexRef.current
       const repeat = repeatRef.current
+      if (queue[idx]?.id) scrobbleSong(queue[idx].id).catch(() => {})
       if (repeat === 'one') {
         const audio = audioRef.current
         audio.currentTime = 0

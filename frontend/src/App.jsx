@@ -6,7 +6,7 @@ import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
-import { Globe } from 'lucide-react'
+import { Globe, Home } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 
@@ -98,6 +98,23 @@ export default function App() {
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Icon nav */}
         <nav className="flex-none w-11 flex flex-col items-center py-2 gap-1 border-r border-slate-800">
+          <button
+            onClick={() => {
+              library.loadHome()
+              setActivePanel(null)
+            }}
+            title="Home"
+            className={`
+              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+              ${
+                library.view === 'home'
+                  ? 'bg-emerald-600/20 text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
+              }
+            `}
+          >
+            <Home size={15} />
+          </button>
           <button
             onClick={() => togglePanel('soulseek')}
             title="Soulseek"

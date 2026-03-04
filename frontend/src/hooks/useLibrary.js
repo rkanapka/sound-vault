@@ -1,8 +1,18 @@
 import { useState, useCallback } from 'react'
-import { getArtists, getArtist, getAlbum, searchLibrary, triggerScan, getScanStatus } from '../api'
+import {
+  getArtists,
+  getArtist,
+  getAlbum,
+  getAlbumList,
+  searchLibrary,
+  triggerScan,
+  getScanStatus,
+} from '../api'
 
 export function useLibrary() {
-  const [view, setView] = useState('artists') // 'artists' | 'artist' | 'album' | 'search'
+  const [view, setView] = useState('artists') // 'home' | 'artists' | 'artist' | 'album' | 'search'
+  const [newestAlbums, setNewestAlbums] = useState([])
+  const [recentAlbums, setRecentAlbums] = useState([])
   const [artists, setArtists] = useState([])
   const [currentArtist, setCurrentArtist] = useState(null)
   const [albums, setAlbums] = useState([])
@@ -13,6 +23,31 @@ export function useLibrary() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [scanning, setScanning] = useState(false)
+
+  const loadHome = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [newestData, recentData] = await Promise.all([
+        getAlbumList('newest', 20),
+        getAlbumList('recent', 20),
+      ])
+      const toAlbums = (data) => {
+        const resp = data['subsonic-response']
+        return resp.albumList2?.album || []
+      }
+      setNewestAlbums(toAlbums(newestData))
+      setRecentAlbums(toAlbums(recentData))
+      setView('home')
+      setBreadcrumbs([])
+      localStorage.removeItem('sv-lib-artist-id')
+      localStorage.removeItem('sv-lib-album-id')
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   const loadArtists = useCallback(async () => {
     setLoading(true)
@@ -145,7 +180,7 @@ export function useLibrary() {
     [pollScanDone]
   )
 
-  // Restore previous navigation on page load, or fall back to artists list
+  // Restore previous navigation on page load, or fall back to home
   const init = useCallback(async () => {
     const albumId = localStorage.getItem('sv-lib-album-id')
     const artistId = localStorage.getItem('sv-lib-artist-id')
@@ -154,12 +189,14 @@ export function useLibrary() {
     } else if (artistId) {
       await goToArtist({ id: artistId })
     } else {
-      await loadArtists()
+      await loadHome()
     }
-  }, [goToAlbum, goToArtist, loadArtists])
+  }, [goToAlbum, goToArtist, loadHome])
 
   return {
     view,
+    newestAlbums,
+    recentAlbums,
     artists,
     currentArtist,
     albums,
@@ -171,6 +208,7 @@ export function useLibrary() {
     error,
     scanning,
     init,
+    loadHome,
     loadArtists,
     goToArtist,
     goToAlbum,

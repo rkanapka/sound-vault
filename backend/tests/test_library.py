@@ -241,6 +241,88 @@ async def test_delete_song_navidrome_auth_failure(client):
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# album-list
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_album_list_newest(client):
+    albums = [{"id": "1", "name": "Kid A"}, {"id": "2", "name": "OK Computer"}]
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getAlbumList2.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(albumList2={"album": albums}))
+        )
+        r = await client.get("/api/library/album-list?type=newest&size=10")
+    assert r.status_code == 200
+    assert r.json()["subsonic-response"]["albumList2"]["album"] == albums
+    assert "type=newest" in str(route.calls[0].request.url)
+    assert "size=10" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_get_album_list_recent(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getAlbumList2.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(albumList2={"album": []}))
+        )
+        r = await client.get("/api/library/album-list?type=recent")
+    assert r.status_code == 200
+    assert "type=recent" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_get_album_list_default_params(client):
+    """Defaults to type=newest, size=20 when not specified."""
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getAlbumList2.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(albumList2={}))
+        )
+        r = await client.get("/api/library/album-list")
+    assert r.status_code == 200
+    assert "type=newest" in str(route.calls[0].request.url)
+    assert "size=20" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_get_album_list_navidrome_error(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getAlbumList2.view").mock(return_value=httpx.Response(500))
+        r = await client.get("/api/library/album-list")
+    assert r.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# scrobble
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_scrobble(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/scrobble.view").mock(
+            return_value=httpx.Response(200, json=nd_ok())
+        )
+        r = await client.post("/api/library/scrobble?id=song123")
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    assert "id=song123" in str(route.calls[0].request.url)
+    assert "submission=true" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_scrobble_navidrome_error(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/scrobble.view").mock(return_value=httpx.Response(500))
+        r = await client.post("/api/library/scrobble?id=song123")
+    assert r.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# scan-status
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
 async def test_get_scan_status(client):
     with respx.mock:

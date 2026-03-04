@@ -127,6 +127,28 @@ async def trigger_scan(client: HttpClient):
     return {"ok": True}
 
 
+@router.get("/album-list")
+async def get_album_list(client: HttpClient, type: str = "newest", size: int = 20):
+    r = await client.get(
+        f"{settings.navidrome_url}/rest/getAlbumList2.view",
+        params=nd_params(type=type, size=size),
+        timeout=10,
+    )
+    r.raise_for_status()
+    return nd_unwrap(r.json())
+
+
+@router.post("/scrobble")
+async def scrobble(client: HttpClient, id: str):
+    r = await client.get(
+        f"{settings.navidrome_url}/rest/scrobble.view",
+        params=nd_params(id=id, submission=True),
+        timeout=10,
+    )
+    r.raise_for_status()
+    return {"ok": True}
+
+
 @router.get("/scan-status")
 async def get_scan_status(client: HttpClient):
     r = await client.get(
