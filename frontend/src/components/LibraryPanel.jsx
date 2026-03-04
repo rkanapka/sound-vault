@@ -80,6 +80,8 @@ export default function LibraryPanel({
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [renamingPlaylist, setRenamingPlaylist] = useState(null)
   const [renameValue, setRenameValue] = useState('')
+  const [playlistDetailMenuOpen, setPlaylistDetailMenuOpen] = useState(false)
+  const [openPlaylistTrackMenuId, setOpenPlaylistTrackMenuId] = useState(null)
   const [addToPlaylistSong, setAddToPlaylistSong] = useState(null)
   const [addToPlaylistCreating, setAddToPlaylistCreating] = useState(false)
   const [addToPlaylistNewName, setAddToPlaylistNewName] = useState('')
@@ -913,26 +915,49 @@ export default function LibraryPanel({
                     <h2 className="text-sm font-medium text-slate-200 truncate">
                       {playlists.currentPlaylist?.name}
                     </h2>
-                    <div className="flex gap-0.5 flex-none">
+                    <div className="relative flex-none">
                       <button
-                        onClick={() => {
-                          setRenamingPlaylist(playlists.currentPlaylist)
-                          setRenameValue(playlists.currentPlaylist?.name || '')
-                        }}
+                        onClick={() => setPlaylistDetailMenuOpen((v) => !v)}
                         className="p-1.5 rounded text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors"
-                        title="Rename"
+                        title="Playlist actions"
                       >
-                        <Pencil size={12} />
+                        <MoreHorizontal size={13} />
                       </button>
-                      <button
-                        onClick={() =>
-                          playlists.remove(playlists.currentPlaylist?.id, playlists.currentPlaylist)
-                        }
-                        className="p-1.5 rounded text-slate-600 hover:text-red-400 hover:bg-slate-700 transition-colors"
-                        title="Delete playlist"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+
+                      {playlistDetailMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setPlaylistDetailMenuOpen(false)}
+                          />
+                          <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1">
+                            <button
+                              onClick={() => {
+                                setRenamingPlaylist(playlists.currentPlaylist)
+                                setRenameValue(playlists.currentPlaylist?.name || '')
+                                setPlaylistDetailMenuOpen(false)
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors text-left"
+                            >
+                              <Pencil size={13} className="text-slate-400 flex-none" />
+                              Rename
+                            </button>
+                            <button
+                              onClick={async () => {
+                                await playlists.remove(
+                                  playlists.currentPlaylist?.id,
+                                  playlists.currentPlaylist
+                                )
+                                setPlaylistDetailMenuOpen(false)
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition-colors text-left"
+                            >
+                              <Trash2 size={13} className="flex-none" />
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs text-slate-600 mt-0.5">
@@ -954,7 +979,7 @@ export default function LibraryPanel({
                       return (
                         <li
                           key={`${track.id}-${idx}`}
-                          className={`group flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
+                          className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
                         >
                           <button
                             onClick={() => onPlay(track, playlists.tracks)}
@@ -994,18 +1019,43 @@ export default function LibraryPanel({
                             </span>
                             <button
                               onClick={() =>
-                                playlists.removeTrack(
-                                  playlists.currentPlaylist?.id,
-                                  idx,
-                                  playlists.currentPlaylist
+                                setOpenPlaylistTrackMenuId(
+                                  openPlaylistTrackMenuId === `${track.id}-${idx}`
+                                    ? null
+                                    : `${track.id}-${idx}`
                                 )
                               }
-                              className="p-1.5 rounded-md text-slate-700 hover:text-red-400 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                              title="Remove from playlist"
+                              className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                              title="More options"
                             >
-                              <X size={12} />
+                              <MoreHorizontal size={14} />
                             </button>
                           </div>
+
+                          {openPlaylistTrackMenuId === `${track.id}-${idx}` && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenPlaylistTrackMenuId(null)}
+                              />
+                              <div className="absolute right-2 top-full mt-1 z-50 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1">
+                                <button
+                                  onClick={async () => {
+                                    await playlists.removeTrack(
+                                      playlists.currentPlaylist?.id,
+                                      idx,
+                                      playlists.currentPlaylist
+                                    )
+                                    setOpenPlaylistTrackMenuId(null)
+                                  }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition-colors text-left"
+                                >
+                                  <Trash2 size={13} className="flex-none" />
+                                  Remove from playlist
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </li>
                       )
                     })}
