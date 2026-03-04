@@ -188,6 +188,11 @@ export default function LibraryPanel({
     playlists.openPlaylist(playlist)
   }
 
+  const openAlbumFromHome = (album) => {
+    onNavigate('library')
+    goToAlbum(album)
+  }
+
   return (
     <section className="flex flex-col flex-1 min-h-0 min-w-0">
       {/* Header */}
@@ -300,30 +305,61 @@ export default function LibraryPanel({
 
             {/* Home view */}
             {!loading && !error && view === 'home' && (
-              <div className="py-3">
-                <div className="mb-4">
-                  <p className="px-4 mb-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-                    Playlists
-                  </p>
+              <div className="py-3 px-4 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    onClick={() => {
+                      onNavigate('library')
+                      loadArtists()
+                    }}
+                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
+                  >
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500">Library</p>
+                    <p className="text-sm text-slate-200 mt-1">Browse Artists</p>
+                  </button>
+                  <button
+                    onClick={() => onNavigate('playlists')}
+                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
+                  >
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500">
+                      Playlists
+                    </p>
+                    <p className="text-sm text-slate-200 mt-1">Open Collection</p>
+                  </button>
+                  <button
+                    onClick={() => onNavigate('soulseek')}
+                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
+                  >
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500">Discover</p>
+                    <p className="text-sm text-slate-200 mt-1">Search Soulseek</p>
+                  </button>
+                </div>
+
+                <div>
+                  <div className="mb-2">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                      Playlists
+                    </p>
+                  </div>
                   {playlists.loading ? (
-                    <div className="px-4 py-2">
+                    <div className="py-2">
                       <div className="w-4 h-4 rounded-full border-2 border-slate-700 border-t-emerald-500 animate-spin" />
                     </div>
                   ) : playlists.playlists.length === 0 ? (
-                    <p className="px-4 text-xs text-slate-700">No playlists yet</p>
+                    <p className="text-xs text-slate-700">No playlists yet</p>
                   ) : (
-                    <div className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none">
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                       {playlists.playlists.map((pl) => (
                         <button
                           key={pl.id}
                           onClick={() => openPlaylistFromHome(pl)}
-                          className="flex-none min-w-[120px] rounded-md border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-left hover:border-slate-500 transition-colors"
+                          className="flex-none min-w-[150px] rounded-lg border border-slate-700/60 bg-gradient-to-br from-slate-800/80 to-slate-800/30 px-3 py-3 text-left hover:border-slate-500 transition-colors"
                         >
                           <div className="flex items-center gap-2">
-                            <ListMusic size={12} className="text-slate-500 flex-none" />
-                            <p className="text-[11px] text-slate-200 truncate">{pl.name}</p>
+                            <ListMusic size={12} className="text-emerald-500/70 flex-none" />
+                            <p className="text-xs text-slate-100 truncate">{pl.name}</p>
                           </div>
-                          <p className="mt-1 text-[10px] text-slate-600">
+                          <p className="mt-1.5 text-[11px] text-slate-500">
                             {pl.songCount ?? 0} {pl.songCount === 1 ? 'track' : 'tracks'}
                           </p>
                         </button>
@@ -336,24 +372,24 @@ export default function LibraryPanel({
                   { label: 'Recently Added', albums: newestAlbums },
                   { label: 'Recently Played', albums: recentAlbums },
                 ].map(({ label, albums: list }) => (
-                  <div key={label} className="mb-4">
-                    <p className="px-4 mb-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                  <div key={label}>
+                    <p className="mb-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
                       {label}
                     </p>
                     {list.length === 0 ? (
-                      <p className="px-4 text-xs text-slate-700">Nothing here yet</p>
+                      <p className="text-xs text-slate-700">Nothing here yet</p>
                     ) : (
-                      <div className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none">
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                         {list.map((album) => (
                           <button
                             key={album.id}
-                            onClick={() => goToAlbum(album)}
-                            className="flex-none w-20 group text-left"
+                            onClick={() => openAlbumFromHome(album)}
+                            className="flex-none w-24 group text-left"
                           >
-                            <div className="w-20 h-20 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 group-hover:border-slate-500 transition-colors mb-1">
+                            <div className="w-24 h-24 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 group-hover:border-slate-500 transition-colors mb-1.5 shadow-sm">
                               {album.coverArt ? (
                                 <img
-                                  src={artUrl(album.coverArt, 160)}
+                                  src={artUrl(album.coverArt, 192)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                 />
@@ -363,10 +399,10 @@ export default function LibraryPanel({
                                 </div>
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-300 truncate leading-snug group-hover:text-white transition-colors">
+                            <p className="text-[11px] text-slate-300 truncate leading-snug group-hover:text-white transition-colors">
                               {album.name}
                             </p>
-                            <p className="text-[9px] text-slate-600 truncate leading-snug">
+                            <p className="text-[10px] text-slate-600 truncate leading-snug">
                               {album.artist}
                             </p>
                           </button>
@@ -375,20 +411,6 @@ export default function LibraryPanel({
                     )}
                   </div>
                 ))}
-                <div className="px-4 pt-2 border-t border-slate-800/50 flex gap-4">
-                  <button
-                    onClick={loadArtists}
-                    className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-                  >
-                    Browse all artists →
-                  </button>
-                  <button
-                    onClick={() => onNavigate('playlists')}
-                    className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
-                  >
-                    Playlists →
-                  </button>
-                </div>
               </div>
             )}
 
