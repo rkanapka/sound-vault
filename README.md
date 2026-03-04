@@ -18,7 +18,7 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 └──────────────────┬──────────────────────────┘
                    │
 ┌──────────────────▼──────────────────────────┐
-│  sound-vault  :8080                         │
+│  sound-vault  :7070                         │
 │  FastAPI (Python 3.14)                      │
 │  · /api/library/*  → Navidrome              │
 │  · /api/soulseek/* → slskd                  │
@@ -75,7 +75,7 @@ docker compose up -d
 
 | Service | URL | Notes |
 |---|---|---|
-| SoundVault | `http://localhost:8080` | Main app |
+| SoundVault | `http://localhost:7070` | Main app |
 | Navidrome | `http://localhost:4533` | Direct access |
 | slskd | `http://localhost:5030` | Direct access |
 

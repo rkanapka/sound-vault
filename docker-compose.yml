@@ -14,7 +14,7 @@ services:
     volumes:
       - ${MUSIC_DIR}/music:/music
     ports:
-      - ${SOUNDVAULT_PORT:-8080}:8080
+      - ${SOUNDVAULT_PORT:-7070}:8080
 
   slskd:
     image: slskd/slskd:latest
