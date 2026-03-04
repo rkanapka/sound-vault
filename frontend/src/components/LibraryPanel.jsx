@@ -1074,31 +1074,33 @@ export default function LibraryPanel({
             className="fixed inset-0 z-40 bg-black/40"
             onClick={() => setRenamingPlaylist(null)}
           />
-          <div className="fixed inset-x-4 top-1/3 z-50 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4">
-            <p className="text-sm font-medium text-slate-200 mb-3">Rename playlist</p>
-            <form onSubmit={handleRenamePlaylist} className="flex flex-col gap-2">
-              <input
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/40"
-              />
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setRenamingPlaylist(null)}
-                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-500"
-                >
-                  Rename
-                </button>
-              </div>
-            </form>
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[22vh] px-4">
+            <div className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4">
+              <p className="text-sm font-medium text-slate-200 mb-3">Rename playlist</p>
+              <form onSubmit={handleRenamePlaylist} className="flex flex-col gap-2">
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/40"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setRenamingPlaylist(null)}
+                    className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-500"
+                  >
+                    Rename
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </>
       )}
