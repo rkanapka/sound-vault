@@ -7,6 +7,7 @@ import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
+import BrandMark from './components/BrandMark'
 import { Globe, Home, Library, ListMusic } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
@@ -124,7 +125,7 @@ export default function App() {
     <div className="sv-app-shell flex flex-col h-screen text-slate-100 overflow-hidden">
       {/* Header */}
       <header className="flex-none h-12 px-5 flex items-center gap-2.5 border-b border-slate-800">
-        <span className="text-emerald-400 text-lg leading-none">♫</span>
+        <BrandMark className="w-5 h-5" />
         <span className="text-sm font-semibold tracking-wide text-slate-200">SoundVault</span>
       </header>
 
