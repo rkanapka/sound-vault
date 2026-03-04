@@ -63,7 +63,7 @@ export default function Player({ player, onShowDetails }) {
 
   return (
     <footer className="flex-none border-t border-slate-800 bg-slate-900 px-4 py-3">
-      <div className="flex items-center gap-3 sm:gap-4 max-w-5xl mx-auto">
+      <div className="flex items-center gap-2 sm:gap-4 max-w-5xl mx-auto">
         {/* Album art + track info — click to open details */}
         <button
           onClick={onShowDetails}
@@ -181,8 +181,8 @@ export default function Player({ player, onShowDetails }) {
           </div>
         </div>
 
-        {/* Volume - hidden on small screens */}
-        <div className="hidden md:flex items-center gap-2 flex-none w-24 lg:w-28">
+        {/* Volume */}
+        <div className="flex items-center gap-1 sm:gap-2 w-14 sm:w-24 lg:w-28 min-w-0 shrink">
           <button
             onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
             className="text-slate-500 hover:text-slate-300 transition-colors flex-none"
@@ -196,7 +196,7 @@ export default function Player({ player, onShowDetails }) {
             step="0.01"
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="flex-1 h-1 cursor-pointer"
+            className="flex-1 min-w-0 h-1 cursor-pointer"
             style={{ '--range-pct': `${volume * 100}%` }}
           />
         </div>
