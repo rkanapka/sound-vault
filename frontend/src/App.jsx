@@ -32,6 +32,11 @@ export default function App() {
   const hasSoulseekResults = Object.keys(search.results).length > 0
   const { view: libraryView, loadHome, loadArtists } = library
   const { playlists: playlistList, loadPlaylists } = playlists
+  const openPlaylistsList = () => {
+    playlists.backToList()
+    loadPlaylists()
+    setActiveRoute('playlists')
+  }
 
   useEffect(() => {
     if (activeRoute === 'home' && libraryView !== 'home') loadHome()
@@ -65,7 +70,7 @@ export default function App() {
             Library
           </button>
           <button
-            onClick={() => setActiveRoute('playlists')}
+            onClick={openPlaylistsList}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeRoute === 'playlists'
                 ? 'text-emerald-400 border-emerald-400'
@@ -160,7 +165,7 @@ export default function App() {
               <span>Library</span>
             </button>
             <button
-              onClick={() => setActiveRoute('playlists')}
+              onClick={openPlaylistsList}
               className={`
                 w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
                 ${
