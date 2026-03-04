@@ -125,69 +125,94 @@ export default function App() {
 
       {/* Main layout */}
       <main className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Icon nav */}
-        <nav className="flex-none w-11 flex flex-col items-center py-2 gap-1 border-r border-slate-800">
-          <button
-            onClick={() => {
-              setActiveRoute('home')
-            }}
-            title="Home"
-            className={`
-              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
-              ${
-                activeRoute === 'home'
-                  ? 'bg-emerald-600/20 text-emerald-400'
-                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
-              }
-            `}
-          >
-            <Home size={15} />
-          </button>
-          <button
-            onClick={() => setActiveRoute('library')}
-            title="Library"
-            className={`
-              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
-              ${
-                activeRoute === 'library'
-                  ? 'bg-emerald-600/20 text-emerald-400'
-                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
-              }
-            `}
-          >
-            <Library size={15} />
-          </button>
-          <button
-            onClick={() => setActiveRoute('playlists')}
-            title="Playlists"
-            className={`
-              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
-              ${
-                activeRoute === 'playlists'
-                  ? 'bg-emerald-600/20 text-emerald-400'
-                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
-              }
-            `}
-          >
-            <ListMusic size={15} />
-          </button>
-          <button
-            onClick={() => setActiveRoute('soulseek')}
-            title="Soulseek"
-            className={`
-              relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors
-              ${
-                activeRoute === 'soulseek'
-                  ? 'bg-emerald-600/20 text-emerald-400'
-                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
-              }
-            `}
-          >
-            <Globe size={15} />
-            {hasSoulseekResults && activeRoute !== 'soulseek' && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        {/* Sidebar nav */}
+        <nav className="flex-none w-56 p-3 border-r border-slate-800 overflow-y-auto">
+          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2.5">
+            Sections
+          </p>
+          <div className="space-y-1">
+            <button
+              onClick={() => setActiveRoute('home')}
+              className={`
+                w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'home'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <Home size={14} />
+              <span>Home</span>
+            </button>
+            <button
+              onClick={() => setActiveRoute('library')}
+              className={`
+                w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'library'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <Library size={14} />
+              <span>Library</span>
+            </button>
+            <button
+              onClick={() => setActiveRoute('playlists')}
+              className={`
+                w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'playlists'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <ListMusic size={14} />
+              <span>Playlists</span>
+            </button>
+            <button
+              onClick={() => setActiveRoute('soulseek')}
+              className={`
+                relative w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'soulseek'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <Globe size={14} />
+              <span>Soulseek</span>
+              {hasSoulseekResults && activeRoute !== 'soulseek' && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              )}
+            </button>
+          </div>
+
+          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mt-5 mb-2.5">
+            Playlists
+          </p>
+          <div className="space-y-1">
+            {playlistList.slice(0, 8).map((playlist) => (
+              <button
+                key={playlist.id}
+                onClick={() => {
+                  setActiveRoute('playlists')
+                  playlists.openPlaylist(playlist)
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-md text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors truncate"
+                title={playlist.name}
+              >
+                {playlist.name}
+              </button>
+            ))}
+            {playlistList.length === 0 && (
+              <p className="px-2.5 py-2 text-sm text-slate-600">No playlists yet</p>
             )}
-          </button>
+          </div>
         </nav>
 
         {activeRoute === 'soulseek' ? (
