@@ -112,12 +112,12 @@ export default function Player({ player, onShowDetails }) {
             </button>
             <button
               onClick={togglePlay}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-95 shadow-lg shadow-emerald-900/30"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-slate-100 border border-slate-500/40 transition-all active:scale-95 shadow-md shadow-black/35"
             >
               {playing ? (
-                <Pause size={13} fill="white" />
+                <Pause size={13} fill="currentColor" />
               ) : (
-                <Play size={13} fill="white" className="ml-0.5" />
+                <Play size={13} fill="currentColor" className="ml-0.5" />
               )}
             </button>
             <button
@@ -134,7 +134,7 @@ export default function Player({ player, onShowDetails }) {
               className={`p-1.5 rounded-md transition-colors ${
                 repeat === 'off'
                   ? 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'
-                  : 'text-emerald-400 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               {repeat === 'one' ? <Repeat1 size={14} /> : <Repeat size={14} />}

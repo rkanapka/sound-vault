@@ -209,11 +209,11 @@ export default function LibraryPanel({
                   value={libQuery}
                   onChange={(e) => setLibQuery(e.target.value)}
                   placeholder="Search library…"
-                  className="flex-1 bg-slate-800 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition-colors"
+                  className="sv-search-input flex-1 rounded-lg px-3 py-2 text-sm transition-colors"
                 />
                 <button
                   type="submit"
-                  className="flex-none flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800 border border-slate-700/60 hover:border-emerald-500/40 text-slate-500 hover:text-emerald-400 transition-colors"
+                  className="sv-search-btn flex-none flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
                 >
                   <Search size={13} />
                 </button>
@@ -318,7 +318,11 @@ export default function LibraryPanel({
                     <p className="text-sm text-slate-200 mt-1">Browse Artists</p>
                   </button>
                   <button
-                    onClick={() => onNavigate('playlists')}
+                    onClick={() => {
+                      playlists.backToList()
+                      playlists.loadPlaylists()
+                      onNavigate('playlists')
+                    }}
                     className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
                   >
                     <p className="text-[10px] uppercase tracking-widest text-slate-500">

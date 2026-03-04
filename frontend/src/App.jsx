@@ -46,7 +46,7 @@ export default function App() {
 
   if (isEmbed) {
     return (
-      <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden">
+      <div className="sv-app-shell flex flex-col h-screen text-slate-100 overflow-hidden">
         {/* Tab bar */}
         <div className="flex-none flex border-b border-slate-800">
           <button
@@ -121,7 +121,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="sv-app-shell flex flex-col h-screen text-slate-100 overflow-hidden">
       {/* Header */}
       <header className="flex-none h-12 px-5 flex items-center gap-2.5 border-b border-slate-800">
         <span className="text-emerald-400 text-lg leading-none">♫</span>

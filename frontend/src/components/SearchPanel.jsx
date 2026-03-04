@@ -125,7 +125,7 @@ export default function SearchPanel({ search, embedded = false }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search for music…"
-            className="flex-1 bg-slate-800 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition-colors"
+            className="sv-search-input flex-1 rounded-lg px-3 py-2 text-sm transition-colors"
           />
           <button
             type="submit"
@@ -134,7 +134,7 @@ export default function SearchPanel({ search, embedded = false }) {
               ${
                 searching
                   ? 'bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-800/40'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-slate-500 hover:bg-slate-400 text-slate-900'
               }
             `}
           >

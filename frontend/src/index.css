@@ -14,6 +14,14 @@
 }
 
 :root {
+  --bg: #111110;
+  --surface: #595957;
+  --primary: #9d9e97;
+  --accent: #e0e2e0;
+  --muted: #374336;
+  --text-high: #f0f0f0;
+  --text-low: #b4b4b4;
+
   font-family:
     Inter,
     system-ui,
@@ -22,6 +30,63 @@
     'Segoe UI',
     sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background:
+    radial-gradient(820px 520px at 50% 6%, rgba(240, 240, 236, 0.18), rgba(240, 240, 236, 0) 66%),
+    radial-gradient(720px 460px at 70% 24%, rgba(181, 128, 82, 0.18), rgba(181, 128, 82, 0) 64%),
+    radial-gradient(660px 440px at 34% 28%, rgba(90, 121, 144, 0.14), rgba(90, 121, 144, 0) 62%),
+    radial-gradient(540px 360px at 92% 0%, rgba(88, 121, 86, 0.16), rgba(88, 121, 86, 0) 68%),
+    linear-gradient(160deg, #121211 0%, #0f1113 42%, #0d0f0f 100%);
+  color: var(--text-high);
+}
+
+.sv-app-shell {
+  background:
+    radial-gradient(140% 95% at 50% 2%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 46%),
+    radial-gradient(
+      130% 120% at 50% 52%,
+      rgba(0, 0, 0, 0) 32%,
+      rgba(0, 0, 0, 0.5) 78%,
+      rgba(0, 0, 0, 0.82) 100%
+    ),
+    linear-gradient(180deg, rgba(8, 8, 8, 0.2) 0%, rgba(8, 8, 8, 0.55) 100%);
+}
+
+.sv-search-input {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 66%, transparent),
+    color-mix(in oklab, var(--surface) 50%, transparent)
+  );
+  border: 1px solid color-mix(in oklab, var(--muted) 70%, #ffffff 8%);
+  color: var(--text-high);
+}
+
+.sv-search-input::placeholder {
+  color: color-mix(in oklab, var(--text-low) 82%, transparent);
+}
+
+.sv-search-input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 52%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.sv-search-btn {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--surface) 70%, transparent),
+    color-mix(in oklab, var(--surface) 52%, transparent)
+  );
+  border: 1px solid color-mix(in oklab, var(--muted) 70%, #ffffff 8%);
+  color: var(--text-low);
+}
+
+.sv-search-btn:hover {
+  border-color: color-mix(in oklab, var(--accent) 36%, transparent);
+  color: var(--accent);
 }
 
 /* Thin, subtle scrollbar */
@@ -48,16 +113,22 @@ input[type='range'] {
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, #10b981 var(--range-pct, 0%), #374151 var(--range-pct, 0%));
-  height: 3px;
-  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--primary) 68%, var(--accent) 32%) var(--range-pct, 0%),
+    color-mix(in oklab, var(--muted) 84%, transparent) var(--range-pct, 0%)
+  );
+  height: 4px;
+  border-radius: 999px;
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: #10b981;
-  width: 12px;
-  height: 12px;
+  background: color-mix(in oklab, var(--primary) 88%, var(--accent) 12%);
+  border: 1px solid color-mix(in oklab, var(--text-low) 40%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--bg) 76%, transparent);
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   margin-top: -4.5px;
   transition: transform 0.1s;
@@ -66,16 +137,20 @@ input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 input[type='range']::-moz-range-track {
-  background: linear-gradient(to right, #10b981 var(--range-pct, 0%), #374151 var(--range-pct, 0%));
-  height: 3px;
-  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--primary) 68%, var(--accent) 32%) var(--range-pct, 0%),
+    color-mix(in oklab, var(--muted) 84%, transparent) var(--range-pct, 0%)
+  );
+  height: 4px;
+  border-radius: 999px;
 }
 input[type='range']::-moz-range-thumb {
-  background: #10b981;
-  width: 12px;
-  height: 12px;
+  background: color-mix(in oklab, var(--primary) 88%, var(--accent) 12%);
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid color-mix(in oklab, var(--text-low) 40%, transparent);
 }
 
 /* Spotify-style equalizer bars */
@@ -100,7 +175,7 @@ input[type='range']::-moz-range-thumb {
   display: block;
   width: 2.5px;
   height: 100%;
-  background: #10b981;
+  background: color-mix(in oklab, var(--primary) 76%, var(--accent) 24%);
   border-radius: 1px;
   transform-origin: bottom;
   animation: sv-eq 0.9s ease-in-out infinite;
