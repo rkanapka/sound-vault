@@ -200,6 +200,56 @@ async def test_delete_song(client, monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_delete_song_prunes_empty_parent_dirs(client, monkeypatch, tmp_path):
+    import routers.library.files as lib
+    from config import Settings
+
+    song_file = tmp_path / "Artist" / "Album" / "song.mp3"
+    song_file.parent.mkdir(parents=True)
+    song_file.write_bytes(b"fake audio")
+
+    monkeypatch.setattr(lib, "settings", Settings(music_dir=str(tmp_path)))
+
+    with respx.mock:
+        _mock_delete_prereqs(str(song_file))
+        respx.get(f"{ND_BASE}/rest/startScan.view").mock(
+            return_value=httpx.Response(200, json=nd_ok())
+        )
+        r = await client.delete("/api/library/song/s1")
+
+    assert r.status_code == 204
+    assert not (tmp_path / "Artist" / "Album").exists()
+    assert not (tmp_path / "Artist").exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_song_keeps_non_empty_parent_dirs(client, monkeypatch, tmp_path):
+    import routers.library.files as lib
+    from config import Settings
+
+    album_dir = tmp_path / "Artist" / "Album"
+    song_file = album_dir / "song.mp3"
+    other_file = album_dir / "other.mp3"
+    album_dir.mkdir(parents=True)
+    song_file.write_bytes(b"fake audio")
+    other_file.write_bytes(b"keep")
+
+    monkeypatch.setattr(lib, "settings", Settings(music_dir=str(tmp_path)))
+
+    with respx.mock:
+        _mock_delete_prereqs(str(song_file))
+        respx.get(f"{ND_BASE}/rest/startScan.view").mock(
+            return_value=httpx.Response(200, json=nd_ok())
+        )
+        r = await client.delete("/api/library/song/s1")
+
+    assert r.status_code == 204
+    assert not song_file.exists()
+    assert other_file.exists()
+    assert album_dir.exists()
+
+
+@pytest.mark.asyncio
 async def test_delete_song_path_outside_music_dir(client, monkeypatch, tmp_path):
     import routers.library.files as lib
     from config import Settings

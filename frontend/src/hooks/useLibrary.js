@@ -152,11 +152,14 @@ export function useLibrary() {
   )
 
   const pollScanDone = useCallback(async () => {
-    for (let i = 0; i < 30; i++) {
+    let seenScanning = false
+    for (let i = 0; i < 60; i++) {
       try {
         const data = await getScanStatus()
         const resp = data['subsonic-response']
-        if (!resp.scanStatus?.scanning) return
+        const isScanning = !!resp.scanStatus?.scanning
+        if (isScanning) seenScanning = true
+        if (seenScanning && !isScanning) return
       } catch {
         return
       }
