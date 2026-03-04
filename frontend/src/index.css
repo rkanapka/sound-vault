@@ -89,6 +89,95 @@ body {
   color: var(--accent);
 }
 
+.sv-menu-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 74%, transparent),
+    color-mix(in oklab, var(--surface) 58%, transparent)
+  );
+  border: 1px solid color-mix(in oklab, var(--muted) 70%, #ffffff 10%);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.sv-menu-item {
+  color: var(--text-high);
+}
+
+.sv-menu-item:hover {
+  background: color-mix(in oklab, var(--surface) 82%, transparent);
+}
+
+.sv-menu-icon {
+  color: color-mix(in oklab, var(--text-low) 80%, transparent);
+}
+
+.sv-menu-divider {
+  background: color-mix(in oklab, var(--muted) 72%, transparent);
+}
+
+.sv-menu-danger {
+  color: #f18d8d;
+}
+
+.sv-modal-overlay {
+  background: rgba(4, 5, 4, 0.62);
+  backdrop-filter: blur(6px);
+}
+
+.sv-modal-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 76%, transparent),
+    color-mix(in oklab, var(--surface) 60%, transparent)
+  );
+  border: 1px solid color-mix(in oklab, var(--muted) 70%, #ffffff 10%);
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.42);
+}
+
+.sv-modal-input {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 70%, transparent),
+    color-mix(in oklab, var(--surface) 54%, transparent)
+  );
+  border: 1px solid color-mix(in oklab, var(--muted) 72%, #ffffff 10%);
+  color: var(--text-high);
+}
+
+.sv-modal-input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 42%, transparent);
+}
+
+.sv-btn-secondary {
+  color: var(--text-low);
+  background: color-mix(in oklab, var(--surface) 70%, transparent);
+  border: 1px solid color-mix(in oklab, var(--muted) 72%, #ffffff 10%);
+}
+
+.sv-btn-secondary:hover {
+  color: var(--text-high);
+  border-color: color-mix(in oklab, var(--accent) 32%, transparent);
+}
+
+.sv-btn-primary {
+  color: #111110;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--primary) 86%, var(--accent) 14%),
+    color-mix(in oklab, var(--primary) 78%, var(--accent) 22%)
+  );
+}
+
+.sv-btn-primary:hover {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--primary) 80%, var(--accent) 20%),
+    color-mix(in oklab, var(--primary) 72%, var(--accent) 28%)
+  );
+}
+
 /* Thin, subtle scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

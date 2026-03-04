@@ -256,18 +256,18 @@ export default function LibraryPanel({
               value={newPlaylistName}
               onChange={(e) => setNewPlaylistName(e.target.value)}
               placeholder="Playlist name…"
-              className="flex-1 bg-slate-800 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/40"
+              className="sv-search-input flex-1 rounded-lg px-3 py-2 text-sm"
             />
             <button
               type="submit"
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex-none"
+              className="sv-btn-primary text-xs px-2.5 py-1.5 rounded-md flex-none transition-colors"
             >
               Create
             </button>
             <button
               type="button"
               onClick={() => setCreatePlaylistMode(false)}
-              className="text-xs text-slate-600 hover:text-slate-400 flex-none"
+              className="sv-btn-secondary text-xs px-2.5 py-1.5 rounded-md flex-none transition-colors"
             >
               Cancel
             </button>
@@ -892,16 +892,16 @@ export default function LibraryPanel({
                           className="fixed inset-0 z-40"
                           onClick={() => setPlaylistMenuId(null)}
                         />
-                        <div className="absolute right-2 top-full mt-1 z-50 min-w-[140px] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1">
+                        <div className="sv-menu-panel absolute right-2 top-full mt-1 z-50 min-w-[140px] rounded-lg py-1">
                           <button
                             onClick={() => {
                               setRenamingPlaylist(pl)
                               setRenameValue(pl.name)
                               setPlaylistMenuId(null)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors text-left"
+                            className="sv-menu-item w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                           >
-                            <Pencil size={13} className="text-slate-400 flex-none" />
+                            <Pencil size={13} className="sv-menu-icon flex-none" />
                             Rename
                           </button>
                           <button
@@ -909,7 +909,7 @@ export default function LibraryPanel({
                               setPlaylistMenuId(null)
                               await playlists.remove(pl.id, playlists.currentPlaylist)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition-colors text-left"
+                            className="sv-menu-item sv-menu-danger w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                           >
                             <Trash2 size={13} className="flex-none" />
                             Delete
@@ -956,16 +956,16 @@ export default function LibraryPanel({
                             className="fixed inset-0 z-40"
                             onClick={() => setPlaylistDetailMenuOpen(false)}
                           />
-                          <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1">
+                          <div className="sv-menu-panel absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg py-1">
                             <button
                               onClick={() => {
                                 setRenamingPlaylist(playlists.currentPlaylist)
                                 setRenameValue(playlists.currentPlaylist?.name || '')
                                 setPlaylistDetailMenuOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors text-left"
+                              className="sv-menu-item w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                             >
-                              <Pencil size={13} className="text-slate-400 flex-none" />
+                              <Pencil size={13} className="sv-menu-icon flex-none" />
                               Rename
                             </button>
                             <button
@@ -976,7 +976,7 @@ export default function LibraryPanel({
                                 )
                                 setPlaylistDetailMenuOpen(false)
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition-colors text-left"
+                              className="sv-menu-item sv-menu-danger w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                             >
                               <Trash2 size={13} className="flex-none" />
                               Delete
@@ -1064,7 +1064,7 @@ export default function LibraryPanel({
                                 className="fixed inset-0 z-40"
                                 onClick={() => setOpenPlaylistTrackMenuId(null)}
                               />
-                              <div className="absolute right-2 top-full mt-1 z-50 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1">
+                              <div className="sv-menu-panel absolute right-2 top-full mt-1 z-50 min-w-[180px] rounded-lg py-1">
                                 <button
                                   onClick={async () => {
                                     await playlists.removeTrack(
@@ -1074,7 +1074,7 @@ export default function LibraryPanel({
                                     )
                                     setOpenPlaylistTrackMenuId(null)
                                   }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition-colors text-left"
+                                  className="sv-menu-item sv-menu-danger w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
                                 >
                                   <Trash2 size={13} className="flex-none" />
                                   Remove from playlist
@@ -1097,30 +1097,30 @@ export default function LibraryPanel({
       {renamingPlaylist && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40"
+            className="sv-modal-overlay fixed inset-0 z-40"
             onClick={() => setRenamingPlaylist(null)}
           />
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-[22vh] px-4">
-            <div className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-4">
+            <div className="sv-modal-panel w-full max-w-sm rounded-xl p-4">
               <p className="text-sm font-medium text-slate-200 mb-3">Rename playlist</p>
               <form onSubmit={handleRenamePlaylist} className="flex flex-col gap-2">
                 <input
                   autoFocus
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
-                  className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/40"
+                  className="sv-modal-input rounded-lg px-3 py-2 text-sm"
                 />
                 <div className="flex gap-2 justify-end">
                   <button
                     type="button"
                     onClick={() => setRenamingPlaylist(null)}
-                    className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+                    className="sv-btn-secondary px-3 py-1.5 text-xs rounded-md transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-500"
+                    className="sv-btn-primary px-3 py-1.5 text-xs rounded-md transition-colors"
                   >
                     Rename
                   </button>
@@ -1135,61 +1135,69 @@ export default function LibraryPanel({
       {addToPlaylistSong && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40"
+            className="sv-modal-overlay fixed inset-0 z-40"
             onClick={() => setAddToPlaylistSong(null)}
           />
-          <div className="fixed inset-x-4 top-1/4 z-50 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-            <p className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700">
-              Add to playlist
-            </p>
-            {playlists.loading ? (
-              <div className="flex justify-center py-6">
-                <div className="w-4 h-4 rounded-full border-2 border-slate-700 border-t-emerald-500 animate-spin" />
-              </div>
-            ) : (
-              <ul className="max-h-48 overflow-y-auto">
-                {playlists.playlists.map((pl) => (
-                  <li key={pl.id}>
-                    <button
-                      onClick={() => handleAddToPlaylist(pl.id)}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 text-left transition-colors"
-                    >
-                      <ListMusic size={13} className="text-slate-500 flex-none" />
-                      {pl.name}
-                    </button>
-                  </li>
-                ))}
-                {playlists.playlists.length === 0 && (
-                  <li className="px-4 py-3 text-xs text-slate-600">No playlists yet</li>
-                )}
-              </ul>
-            )}
-            <div className="border-t border-slate-700">
-              {addToPlaylistCreating ? (
-                <form onSubmit={handleAddToPlaylistNew} className="flex items-center gap-2 p-2">
-                  <input
-                    autoFocus
-                    value={addToPlaylistNewName}
-                    onChange={(e) => setAddToPlaylistNewName(e.target.value)}
-                    placeholder="Playlist name…"
-                    className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500/40"
-                  />
-                  <button
-                    type="submit"
-                    className="text-xs text-emerald-400 hover:text-emerald-300 px-1 flex-none"
-                  >
-                    Create
-                  </button>
-                </form>
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center pt-[22vh] px-4"
+            onClick={() => setAddToPlaylistSong(null)}
+          >
+            <div
+              className="sv-modal-panel w-full max-w-sm rounded-xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700/70">
+                Add to playlist
+              </p>
+              {playlists.loading ? (
+                <div className="flex justify-center py-6">
+                  <div className="w-4 h-4 rounded-full border-2 border-slate-700 border-t-emerald-500 animate-spin" />
+                </div>
               ) : (
-                <button
-                  onClick={() => setAddToPlaylistCreating(true)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-400 hover:bg-slate-700 text-left transition-colors"
-                >
-                  <Plus size={13} className="flex-none" />
-                  New playlist
-                </button>
+                <ul className="max-h-48 overflow-y-auto">
+                  {playlists.playlists.map((pl) => (
+                    <li key={pl.id}>
+                      <button
+                        onClick={() => handleAddToPlaylist(pl.id)}
+                        className="sv-menu-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors"
+                      >
+                        <ListMusic size={13} className="sv-menu-icon flex-none" />
+                        {pl.name}
+                      </button>
+                    </li>
+                  ))}
+                  {playlists.playlists.length === 0 && (
+                    <li className="px-4 py-3 text-xs text-slate-600">No playlists yet</li>
+                  )}
+                </ul>
               )}
+              <div className="border-t border-slate-700/70">
+                {addToPlaylistCreating ? (
+                  <form onSubmit={handleAddToPlaylistNew} className="flex items-center gap-2 p-2">
+                    <input
+                      autoFocus
+                      value={addToPlaylistNewName}
+                      onChange={(e) => setAddToPlaylistNewName(e.target.value)}
+                      placeholder="Playlist name…"
+                      className="sv-search-input flex-1 rounded px-2 py-1.5 text-xs"
+                    />
+                    <button
+                      type="submit"
+                      className="sv-btn-primary text-xs px-2 py-1 rounded flex-none transition-colors"
+                    >
+                      Create
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setAddToPlaylistCreating(true)}
+                    className="sv-menu-item w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors"
+                  >
+                    <Plus size={13} className="flex-none" />
+                    New playlist
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </>
