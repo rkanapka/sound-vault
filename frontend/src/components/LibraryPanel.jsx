@@ -29,7 +29,15 @@ function fmtDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function LibraryPanel({ library, player, onPlay, onShowInfo, playlists }) {
+export default function LibraryPanel({
+  library,
+  player,
+  onPlay,
+  onShowInfo,
+  playlists,
+  section,
+  onNavigate,
+}) {
   const {
     view,
     newestAlbums,
@@ -67,8 +75,6 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
     () => localStorage.getItem('sv-tracks-sort') ?? 'track'
   )
 
-  // Playlists section state
-  const [activeSection, setActiveSection] = useState('library')
   const [playlistMenuId, setPlaylistMenuId] = useState(null)
   const [createPlaylistMode, setCreatePlaylistMode] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
@@ -104,17 +110,21 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
 
   const handleSearch = (e) => {
     e.preventDefault()
+    onNavigate('library')
     searchLib(libQuery)
   }
 
   const handleBreadcrumb = (action) => {
     if (action === 'home') {
+      onNavigate('home')
       setLibQuery('')
       loadHome()
     } else if (action === 'artists') {
+      onNavigate('library')
       setLibQuery('')
       loadArtists()
     } else if (action === 'artist') {
+      onNavigate('library')
       goBackToArtist()
     }
   }
@@ -171,13 +181,8 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
     setRenameValue('')
   }
 
-  const switchToPlaylists = () => {
-    setActiveSection('playlists')
-    playlists.loadPlaylists()
-  }
-
   const openPlaylistFromHome = (playlist) => {
-    setActiveSection('playlists')
+    onNavigate('playlists')
     playlists.openPlaylist(playlist)
   }
 
@@ -185,29 +190,11 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
     <section className="flex flex-col flex-1 min-h-0 min-w-0">
       {/* Header */}
       <div className="flex-none p-3 border-b border-slate-800">
-        {/* Section tabs */}
-        <div className="flex gap-4 mb-2.5">
-          <button
-            onClick={() => setActiveSection('library')}
-            className={`text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-              activeSection === 'library' ? 'text-slate-300' : 'text-slate-700 hover:text-slate-500'
-            }`}
-          >
-            Library
-          </button>
-          <button
-            onClick={switchToPlaylists}
-            className={`text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-              activeSection === 'playlists'
-                ? 'text-slate-300'
-                : 'text-slate-700 hover:text-slate-500'
-            }`}
-          >
-            Playlists
-          </button>
-        </div>
+        <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2.5">
+          {section === 'playlists' ? 'Playlists' : 'Library'}
+        </p>
 
-        {activeSection === 'library' ? (
+        {section !== 'playlists' ? (
           <>
             <div className="flex gap-2">
               <form onSubmit={handleSearch} className="flex-1 flex gap-2">
@@ -292,7 +279,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {/* ── Library section ─────────────────────────────── */}
-        {activeSection === 'library' && (
+        {section !== 'playlists' && (
           <>
             {/* Loading */}
             {loading && (
@@ -394,7 +381,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
                     Browse all artists →
                   </button>
                   <button
-                    onClick={switchToPlaylists}
+                    onClick={() => onNavigate('playlists')}
                     className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
                   >
                     Playlists →
@@ -822,7 +809,7 @@ export default function LibraryPanel({ library, player, onPlay, onShowInfo, play
         )}
 
         {/* ── Playlists section ───────────────────────────── */}
-        {activeSection === 'playlists' && (
+        {section === 'playlists' && (
           <>
             {/* Loading */}
             {playlists.loading && (

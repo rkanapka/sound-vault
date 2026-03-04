@@ -7,7 +7,7 @@ import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
-import { Globe, Home } from 'lucide-react'
+import { Globe, Home, Library, ListMusic } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 
@@ -17,8 +17,7 @@ export default function App() {
   const library = useLibrary()
   const playlists = usePlaylists()
   const [infoSong, setInfoSong] = useState(null)
-  const [activePanel, setActivePanel] = useState(null)
-  const [activeTab, setActiveTab] = useState('library')
+  const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'library' | 'playlists' | 'soulseek'
 
   useEffect(() => {
     library.init()
@@ -30,11 +29,15 @@ export default function App() {
     player.play(queue, queue.indexOf(track))
   }
 
-  const togglePanel = (panel) => {
-    setActivePanel((prev) => (prev === panel ? null : panel))
-  }
-
   const hasSoulseekResults = Object.keys(search.results).length > 0
+  const { view: libraryView, loadHome, loadArtists } = library
+  const { playlists: playlistList, loadPlaylists } = playlists
+
+  useEffect(() => {
+    if (activeRoute === 'home' && libraryView !== 'home') loadHome()
+    if (activeRoute === 'library' && libraryView === 'home') loadArtists()
+    if (activeRoute === 'playlists' && playlistList.length === 0) loadPlaylists()
+  }, [activeRoute, libraryView, playlistList.length, loadHome, loadArtists, loadPlaylists])
 
   if (isEmbed) {
     return (
@@ -42,9 +45,19 @@ export default function App() {
         {/* Tab bar */}
         <div className="flex-none flex border-b border-slate-800">
           <button
-            onClick={() => setActiveTab('library')}
+            onClick={() => setActiveRoute('home')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'library'
+              activeRoute === 'home'
+                ? 'text-emerald-400 border-emerald-400'
+                : 'text-slate-500 border-transparent hover:text-slate-300'
+            }`}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => setActiveRoute('library')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeRoute === 'library'
                 ? 'text-emerald-400 border-emerald-400'
                 : 'text-slate-500 border-transparent hover:text-slate-300'
             }`}
@@ -52,15 +65,25 @@ export default function App() {
             Library
           </button>
           <button
-            onClick={() => setActiveTab('soulseek')}
+            onClick={() => setActiveRoute('playlists')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeRoute === 'playlists'
+                ? 'text-emerald-400 border-emerald-400'
+                : 'text-slate-500 border-transparent hover:text-slate-300'
+            }`}
+          >
+            Playlists
+          </button>
+          <button
+            onClick={() => setActiveRoute('soulseek')}
             className={`relative px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'soulseek'
+              activeRoute === 'soulseek'
                 ? 'text-emerald-400 border-emerald-400'
                 : 'text-slate-500 border-transparent hover:text-slate-300'
             }`}
           >
             Soulseek
-            {hasSoulseekResults && activeTab !== 'soulseek' && (
+            {hasSoulseekResults && activeRoute !== 'soulseek' && (
               <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500" />
             )}
           </button>
@@ -68,16 +91,18 @@ export default function App() {
 
         {/* Active panel */}
         <main className="flex flex-1 min-h-0 overflow-hidden">
-          {activeTab === 'library' ? (
+          {activeRoute === 'soulseek' ? (
+            <SearchPanel search={search} embedded />
+          ) : (
             <LibraryPanel
               library={library}
               player={player}
               onPlay={handlePlay}
               onShowInfo={setInfoSong}
               playlists={playlists}
+              section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
+              onNavigate={setActiveRoute}
             />
-          ) : (
-            <SearchPanel search={search} embedded />
           )}
         </main>
 
@@ -104,14 +129,13 @@ export default function App() {
         <nav className="flex-none w-11 flex flex-col items-center py-2 gap-1 border-r border-slate-800">
           <button
             onClick={() => {
-              library.loadHome()
-              setActivePanel(null)
+              setActiveRoute('home')
             }}
             title="Home"
             className={`
               flex items-center justify-center w-8 h-8 rounded-lg transition-colors
               ${
-                library.view === 'home'
+                activeRoute === 'home'
                   ? 'bg-emerald-600/20 text-emerald-400'
                   : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
               }
@@ -120,40 +144,65 @@ export default function App() {
             <Home size={15} />
           </button>
           <button
-            onClick={() => togglePanel('soulseek')}
+            onClick={() => setActiveRoute('library')}
+            title="Library"
+            className={`
+              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+              ${
+                activeRoute === 'library'
+                  ? 'bg-emerald-600/20 text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
+              }
+            `}
+          >
+            <Library size={15} />
+          </button>
+          <button
+            onClick={() => setActiveRoute('playlists')}
+            title="Playlists"
+            className={`
+              flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+              ${
+                activeRoute === 'playlists'
+                  ? 'bg-emerald-600/20 text-emerald-400'
+                  : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
+              }
+            `}
+          >
+            <ListMusic size={15} />
+          </button>
+          <button
+            onClick={() => setActiveRoute('soulseek')}
             title="Soulseek"
             className={`
               relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors
               ${
-                activePanel === 'soulseek'
+                activeRoute === 'soulseek'
                   ? 'bg-emerald-600/20 text-emerald-400'
                   : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'
               }
             `}
           >
             <Globe size={15} />
-            {hasSoulseekResults && activePanel !== 'soulseek' && (
+            {hasSoulseekResults && activeRoute !== 'soulseek' && (
               <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
             )}
           </button>
         </nav>
 
-        {/* Soulseek panel (toggleable) */}
-        {activePanel === 'soulseek' && (
-          <>
-            <SearchPanel search={search} />
-            <div className="w-px bg-slate-800 flex-none" />
-          </>
+        {activeRoute === 'soulseek' ? (
+          <SearchPanel search={search} embedded />
+        ) : (
+          <LibraryPanel
+            library={library}
+            player={player}
+            onPlay={handlePlay}
+            onShowInfo={setInfoSong}
+            playlists={playlists}
+            section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
+            onNavigate={setActiveRoute}
+          />
         )}
-
-        {/* Library */}
-        <LibraryPanel
-          library={library}
-          player={player}
-          onPlay={handlePlay}
-          onShowInfo={setInfoSong}
-          playlists={playlists}
-        />
       </main>
 
       {/* Persistent player bar */}
