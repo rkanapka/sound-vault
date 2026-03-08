@@ -9,6 +9,12 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 
 **Soulseek** is a peer-to-peer network for sharing music. slskd is a self-hosted Soulseek client with an HTTP API. SoundVault uses it to search the Soulseek network and queue downloads directly from the UI - so you can find a release, download it, and it lands in your music folder where Navidrome picks it up after a scan.
 
+## Screenshots
+
+| Home | Library | Soulseek |
+|------|---------|----------|
+| ![Home – recently added albums](docs/screenshots/home.png) | ![Library – album browser](docs/screenshots/library.png) | ![Soulseek search and download](docs/screenshots/soulseek.png) |
+
 ## Architecture
 
 ```
