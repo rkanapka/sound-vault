@@ -34,6 +34,9 @@ function normalizeArtistName(name) {
   return name?.trim().toLocaleLowerCase() ?? ''
 }
 
+const favoritesListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 4.25rem'
+const playlistListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 2.5rem'
+
 export default function LibraryPanel({
   library,
   player,
@@ -218,6 +221,12 @@ export default function LibraryPanel({
   const openAlbumFromHome = (album) => {
     onNavigate('library')
     goToAlbum(album)
+  }
+
+  const openAlbumFromTrack = (track) => {
+    if (!track?.albumId) return
+    onNavigate('library')
+    goToAlbum({ id: track.albumId })
   }
 
   return (
@@ -1024,96 +1033,123 @@ export default function LibraryPanel({
                     </div>
                   </div>
                 ) : (
-                  <ul className="py-1">
-                    {favorites.songs.map((song, idx) => {
-                      const isActive = player.song?.id === song.id
-                      return (
-                        <li
-                          key={song.id}
-                          className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
-                        >
-                          <button
-                            onClick={() => onPlay(song, favorites.songs)}
-                            data-spacebar-play-toggle
-                            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
+                  <>
+                    <div
+                      className="grid items-center gap-3 px-4 py-1 border-b border-slate-800/50 select-none"
+                      style={{ gridTemplateColumns: favoritesListGridTemplate }}
+                    >
+                      <span className="text-center text-[10px] text-slate-600">#</span>
+                      <div />
+                      <span className="text-left text-[10px] text-slate-600">Title</span>
+                      <span className="text-left text-[10px] text-slate-600">Album</span>
+                      <span className="justify-self-end text-[10px] text-slate-600">Time</span>
+                      <div />
+                    </div>
+                    <ul className="py-1">
+                      {favorites.songs.map((song, idx) => {
+                        const isActive = player.song?.id === song.id
+                        return (
+                          <li
+                            key={song.id}
+                            className={`group relative grid items-center gap-3 px-4 transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
+                            style={{ gridTemplateColumns: favoritesListGridTemplate }}
                           >
-                            <span className="w-5 flex items-center justify-center flex-none">
-                              {isActive && player.playing ? (
-                                <span className="sv-eq">
-                                  <span />
-                                  <span />
-                                  <span />
-                                  <span />
-                                </span>
-                              ) : (
-                                <span
-                                  className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                            <button
+                              onClick={() => onPlay(song, favorites.songs)}
+                              data-spacebar-play-toggle
+                              className="col-[1/4] flex items-center gap-3 py-2.5 text-left min-w-0"
+                            >
+                              <span className="w-5 flex items-center justify-center flex-none">
+                                {isActive && player.playing ? (
+                                  <span className="sv-eq">
+                                    <span />
+                                    <span />
+                                    <span />
+                                    <span />
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
+                                {song.artistId ? (
+                                  <img
+                                    src={artUrl(song.artistId, 64)}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Mic2 size={12} className="text-slate-600" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
                                 >
-                                  {idx + 1}
-                                </span>
-                              )}
-                            </span>
-                            <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                              {song.artistId ? (
-                                <img
-                                  src={artUrl(song.artistId, 64)}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Mic2 size={12} className="text-slate-600" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
-                              >
-                                {song.title}
-                              </p>
-                              <p className="text-xs text-slate-600 truncate">
-                                {song.artist}
-                                {song.album ? ` · ${song.album}` : ''}
-                              </p>
-                            </div>
-                          </button>
+                                  {song.title}
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">{song.artist}</p>
+                              </div>
+                            </button>
 
-                          <div className="flex items-center gap-1 pr-2 flex-none">
-                            <span className="text-xs text-slate-600 tabular-nums">
+                            <button
+                              type="button"
+                              onClick={() => openAlbumFromTrack(song)}
+                              disabled={!song.albumId}
+                              className={`min-w-0 text-xs text-left truncate transition-colors ${
+                                song.albumId
+                                  ? 'text-slate-500 hover:text-emerald-400'
+                                  : 'text-slate-700 cursor-default'
+                              }`}
+                              title={song.album || ''}
+                            >
+                              {song.album || 'Unknown album'}
+                            </button>
+
+                            <span className="justify-self-end text-xs text-slate-600 tabular-nums">
                               {fmtDuration(song.duration)}
                             </span>
-                            <button
-                              onClick={() => favorites?.toggle(song)}
-                              className="p-1.5 rounded-md text-pink-400 transition-colors opacity-0 group-hover:opacity-100"
-                              title="Remove from favorites"
-                            >
-                              <Heart size={13} className="fill-current" />
-                            </button>
-                            <button
-                              onClick={() => setOpenMenuId(openMenuId === song.id ? null : song.id)}
-                              className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                              title="More options"
-                            >
-                              <MoreHorizontal size={14} />
-                            </button>
-                          </div>
+                            <div className="justify-self-end flex items-center gap-1">
+                              <button
+                                onClick={() => favorites?.toggle(song)}
+                                className="p-1.5 rounded-md text-pink-400 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Remove from favorites"
+                              >
+                                <Heart size={13} className="fill-current" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setOpenMenuId(openMenuId === song.id ? null : song.id)
+                                }
+                                className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                                title="More options"
+                              >
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </div>
 
-                          {openMenuId === song.id && (
-                            <SongMenu
-                              song={song}
-                              onInfo={onShowInfo}
-                              onDelete={setConfirmSong}
-                              onAddToPlaylist={handleShowAddToPlaylist}
-                              onToggleFavorite={favorites?.toggle}
-                              isFavorited={true}
-                              onClose={() => setOpenMenuId(null)}
-                            />
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ul>
+                            {openMenuId === song.id && (
+                              <SongMenu
+                                song={song}
+                                onInfo={onShowInfo}
+                                onDelete={setConfirmSong}
+                                onAddToPlaylist={handleShowAddToPlaylist}
+                                onToggleFavorite={favorites?.toggle}
+                                isFavorited={true}
+                                onClose={() => setOpenMenuId(null)}
+                              />
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
                 )}
               </>
             )}
@@ -1302,107 +1338,131 @@ export default function LibraryPanel({
                     </p>
                   </div>
                 ) : (
-                  <ul className="py-1">
-                    {playlists.tracks.map((track, idx) => {
-                      const isActive = player.song?.id === track.id
-                      return (
-                        <li
-                          key={`${track.id}-${idx}`}
-                          className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
-                        >
-                          <button
-                            onClick={() => onPlay(track, playlists.tracks)}
-                            data-spacebar-play-toggle
-                            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
+                  <>
+                    <div
+                      className="grid items-center gap-3 px-4 py-1 border-b border-slate-800/50 select-none"
+                      style={{ gridTemplateColumns: playlistListGridTemplate }}
+                    >
+                      <span className="text-center text-[10px] text-slate-600">#</span>
+                      <div />
+                      <span className="text-left text-[10px] text-slate-600">Title</span>
+                      <span className="text-left text-[10px] text-slate-600">Album</span>
+                      <span className="justify-self-end text-[10px] text-slate-600">Time</span>
+                      <div />
+                    </div>
+                    <ul className="py-1">
+                      {playlists.tracks.map((track, idx) => {
+                        const isActive = player.song?.id === track.id
+                        return (
+                          <li
+                            key={`${track.id}-${idx}`}
+                            className={`group relative grid items-center gap-3 px-4 transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
+                            style={{ gridTemplateColumns: playlistListGridTemplate }}
                           >
-                            <span className="w-5 flex items-center justify-center flex-none">
-                              {isActive && player.playing ? (
-                                <span className="sv-eq">
-                                  <span />
-                                  <span />
-                                  <span />
-                                  <span />
-                                </span>
-                              ) : (
-                                <span
-                                  className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                            <button
+                              onClick={() => onPlay(track, playlists.tracks)}
+                              data-spacebar-play-toggle
+                              className="col-[1/4] flex items-center gap-3 py-2.5 text-left min-w-0"
+                            >
+                              <span className="w-5 flex items-center justify-center flex-none">
+                                {isActive && player.playing ? (
+                                  <span className="sv-eq">
+                                    <span />
+                                    <span />
+                                    <span />
+                                    <span />
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                                  >
+                                    {idx + 1}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
+                                {track.artistId ? (
+                                  <img
+                                    src={artUrl(track.artistId, 64)}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Mic2 size={12} className="text-slate-600" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
                                 >
-                                  {idx + 1}
-                                </span>
-                              )}
-                            </span>
-                            <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                              {track.artistId ? (
-                                <img
-                                  src={artUrl(track.artistId, 64)}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Mic2 size={12} className="text-slate-600" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
-                              >
-                                {track.title}
-                              </p>
-                              <p className="text-xs text-slate-600 truncate">
-                                {track.artist}
-                                {track.album ? ` · ${track.album}` : ''}
-                              </p>
-                            </div>
-                          </button>
-                          <div className="flex items-center gap-1 pr-2 flex-none">
-                            <span className="text-xs text-slate-600 tabular-nums">
+                                  {track.title}
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">{track.artist}</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openAlbumFromTrack(track)}
+                              disabled={!track.albumId}
+                              className={`min-w-0 text-xs text-left truncate transition-colors ${
+                                track.albumId
+                                  ? 'text-slate-500 hover:text-emerald-400'
+                                  : 'text-slate-700 cursor-default'
+                              }`}
+                              title={track.album || ''}
+                            >
+                              {track.album || 'Unknown album'}
+                            </button>
+                            <span className="justify-self-end text-xs text-slate-600 tabular-nums">
                               {fmtDuration(track.duration)}
                             </span>
-                            <button
-                              onClick={() =>
-                                setOpenPlaylistTrackMenuId(
-                                  openPlaylistTrackMenuId === `${track.id}-${idx}`
-                                    ? null
-                                    : `${track.id}-${idx}`
-                                )
-                              }
-                              className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
-                              title="More options"
-                            >
-                              <MoreHorizontal size={14} />
-                            </button>
-                          </div>
+                            <div className="justify-self-end flex items-center gap-1">
+                              <button
+                                onClick={() =>
+                                  setOpenPlaylistTrackMenuId(
+                                    openPlaylistTrackMenuId === `${track.id}-${idx}`
+                                      ? null
+                                      : `${track.id}-${idx}`
+                                  )
+                                }
+                                className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                                title="More options"
+                              >
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </div>
 
-                          {openPlaylistTrackMenuId === `${track.id}-${idx}` && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setOpenPlaylistTrackMenuId(null)}
-                              />
-                              <div className="sv-menu-panel absolute right-2 top-full mt-1 z-50 min-w-[180px] rounded-lg py-1">
-                                <button
-                                  onClick={async () => {
-                                    await playlists.removeTrack(
-                                      playlists.currentPlaylist?.id,
-                                      idx,
-                                      playlists.currentPlaylist
-                                    )
-                                    setOpenPlaylistTrackMenuId(null)
-                                  }}
-                                  className="sv-menu-item sv-menu-danger w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
-                                >
-                                  <Trash2 size={13} className="flex-none" />
-                                  Remove from playlist
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ul>
+                            {openPlaylistTrackMenuId === `${track.id}-${idx}` && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setOpenPlaylistTrackMenuId(null)}
+                                />
+                                <div className="sv-menu-panel absolute right-2 top-full mt-1 z-50 min-w-[180px] rounded-lg py-1">
+                                  <button
+                                    onClick={async () => {
+                                      await playlists.removeTrack(
+                                        playlists.currentPlaylist?.id,
+                                        idx,
+                                        playlists.currentPlaylist
+                                      )
+                                      setOpenPlaylistTrackMenuId(null)
+                                    }}
+                                    className="sv-menu-item sv-menu-danger w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
+                                  >
+                                    <Trash2 size={13} className="flex-none" />
+                                    Remove from playlist
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
                 )}
               </>
             )}
