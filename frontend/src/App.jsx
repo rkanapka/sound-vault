@@ -233,10 +233,11 @@ export default function App() {
                   setActiveRoute('playlists')
                   playlists.openPlaylist(playlist)
                 }}
-                className="w-full text-left px-2.5 py-2 rounded-md text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors truncate"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
                 title={playlist.name}
               >
-                {playlist.name}
+                <ListMusic size={14} className="flex-none" />
+                <span className="truncate">{playlist.name}</span>
               </button>
             ))}
             {playlistList.length === 0 && (
