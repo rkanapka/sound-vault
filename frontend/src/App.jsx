@@ -49,7 +49,7 @@ export default function App() {
   }
 
   const hasSoulseekResults = Object.keys(search.results).length > 0
-  const { view: libraryView, loadHome, loadArtists } = library
+  const { view: libraryView, loadHome, openLibrary } = library
   const { playlists: playlistList, loadPlaylists } = playlists
   const openPlaylistsList = () => {
     playlists.backToList()
@@ -59,9 +59,9 @@ export default function App() {
 
   useEffect(() => {
     if (activeRoute === 'home' && libraryView !== 'home') loadHome()
-    if (activeRoute === 'library' && libraryView === 'home') loadArtists()
+    if (activeRoute === 'library' && libraryView === 'home') openLibrary()
     if (activeRoute === 'playlists' && playlistList.length === 0) loadPlaylists()
-  }, [activeRoute, libraryView, playlistList.length, loadHome, loadArtists, loadPlaylists])
+  }, [activeRoute, libraryView, playlistList.length, loadHome, openLibrary, loadPlaylists])
 
   useEffect(() => {
     if (!currentSong) return undefined

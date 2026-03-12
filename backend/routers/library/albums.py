@@ -23,10 +23,10 @@ async def get_album(album_id: str, client: HttpClient):
 
 
 @router.get("/album-list")
-async def get_album_list(client: HttpClient, type: str = "newest", size: int = 20):
+async def get_album_list(client: HttpClient, type: str = "newest", size: int = 20, offset: int = 0):
     r = await client.get(
         f"{settings.navidrome_url}/rest/getAlbumList2.view",
-        params=nd_params(type=type, size=size),
+        params=nd_params(type=type, size=size, offset=offset),
         timeout=10,
     )
     r.raise_for_status()

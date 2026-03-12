@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
   Search,
   RefreshCw,
@@ -49,11 +49,17 @@ export default function LibraryPanel({
 }) {
   const {
     view,
+    browseTab,
     newestAlbums,
     recentAlbums,
     artists,
+    currentArtist,
     albums,
+    allAlbums,
+    allAlbumsHasMore,
+    loadingMoreAlbums,
     currentAlbum,
+    currentAlbumOrigin,
     tracks,
     searchResults,
     breadcrumbs,
@@ -61,10 +67,16 @@ export default function LibraryPanel({
     error,
     scanning,
     loadHome,
+    openLibrary,
     loadArtists,
+    loadAlbums,
+    loadMoreAlbums,
+    ensureAllAlbumsLoaded,
     goToArtist,
     goToAlbum,
     goBackToArtist,
+    openSearchResults,
+    exitSearch,
     searchLib,
     scan,
     pollScanDone,
@@ -133,17 +145,86 @@ export default function LibraryPanel({
   const isCompilationAlbum =
     normalizeArtistName(currentAlbum?.artist) === 'various artists' || trackArtists.length > 1
 
-  const reloadView = useCallback(() => {
-    if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
-    else if (view === 'search') searchLib(libQuery)
-    else if (view === 'home') loadHome()
-    else loadArtists()
-  }, [view, currentAlbum, goToAlbum, searchLib, libQuery, loadHome, loadArtists])
+  const normalizedLibQuery = libQuery.trim().toLocaleLowerCase()
+  const filteredArtists = useMemo(() => {
+    if (!normalizedLibQuery) return artists
+    return artists.filter((artist) => artist.name?.toLocaleLowerCase().includes(normalizedLibQuery))
+  }, [artists, normalizedLibQuery])
 
-  const handleSearch = (e) => {
+  const filteredAllAlbums = useMemo(() => {
+    if (!normalizedLibQuery) return allAlbums
+    return allAlbums.filter((album) => {
+      const albumName = album.name?.toLocaleLowerCase() ?? ''
+      const albumArtist = album.artist?.toLocaleLowerCase() ?? ''
+      return albumName.includes(normalizedLibQuery) || albumArtist.includes(normalizedLibQuery)
+    })
+  }, [allAlbums, normalizedLibQuery])
+
+  const activeLibraryTab =
+    view === 'artists' || view === 'artist' ? 'artists' : view === 'albums' ? 'albums' : browseTab
+  const librarySearchPlaceholder =
+    section === 'home'
+      ? 'Search library…'
+      : activeLibraryTab === 'albums'
+        ? 'Filter albums…'
+        : 'Filter artists…'
+
+  useEffect(() => {
+    if (
+      section !== 'library' ||
+      activeLibraryTab !== 'albums' ||
+      view !== 'albums' ||
+      !normalizedLibQuery
+    )
+      return
+    ensureAllAlbumsLoaded()
+  }, [section, activeLibraryTab, view, normalizedLibQuery, ensureAllAlbumsLoaded])
+
+  const reloadView = useCallback(() => {
+    if (view === 'album' && currentAlbum) goToAlbum(currentAlbum, { origin: currentAlbumOrigin })
+    else if (view === 'search' && libQuery.trim()) searchLib(libQuery)
+    else if (view === 'artist' && currentArtist) goToArtist(currentArtist)
+    else if (view === 'albums') loadAlbums({ force: true })
+    else if (view === 'artists') loadArtists({ force: true })
+    else if (view === 'home') loadHome()
+    else openLibrary({ force: true })
+  }, [
+    view,
+    currentAlbum,
+    currentAlbumOrigin,
+    goToAlbum,
+    searchLib,
+    libQuery,
+    currentArtist,
+    goToArtist,
+    loadAlbums,
+    loadArtists,
+    loadHome,
+    openLibrary,
+  ])
+
+  const handleSearch = async (e) => {
     e.preventDefault()
     onNavigate('library')
+    if (!libQuery.trim()) {
+      await exitSearch()
+      return
+    }
     searchLib(libQuery)
+  }
+
+  const handleLibraryQueryChange = async (e) => {
+    const nextQuery = e.target.value
+    setLibQuery(nextQuery)
+    if (!nextQuery.trim() && (view === 'search' || currentAlbumOrigin?.type === 'search')) {
+      await exitSearch()
+    }
+  }
+
+  const handleLibraryTabChange = (tab) => {
+    onNavigate('library')
+    if (tab === 'albums') loadAlbums()
+    else loadArtists()
   }
 
   const handleBreadcrumb = (action) => {
@@ -153,11 +234,16 @@ export default function LibraryPanel({
       loadHome()
     } else if (action === 'artists') {
       onNavigate('library')
-      setLibQuery('')
       loadArtists()
+    } else if (action === 'albums') {
+      onNavigate('library')
+      loadAlbums()
     } else if (action === 'artist') {
       onNavigate('library')
       goBackToArtist()
+    } else if (action === 'search') {
+      onNavigate('library')
+      openSearchResults()
     }
   }
 
@@ -220,13 +306,13 @@ export default function LibraryPanel({
 
   const openAlbumFromHome = (album) => {
     onNavigate('library')
-    goToAlbum(album)
+    goToAlbum(album, { origin: 'albums' })
   }
 
   const openAlbumFromTrack = (track) => {
     if (!track?.albumId) return
     onNavigate('library')
-    goToAlbum({ id: track.albumId })
+    goToAlbum({ id: track.albumId }, { origin: 'albums' })
   }
 
   return (
@@ -243,12 +329,13 @@ export default function LibraryPanel({
               <form onSubmit={handleSearch} className="flex-1 flex gap-2">
                 <input
                   value={libQuery}
-                  onChange={(e) => setLibQuery(e.target.value)}
-                  placeholder="Search library…"
+                  onChange={handleLibraryQueryChange}
+                  placeholder={librarySearchPlaceholder}
                   className="sv-search-input flex-1 rounded-lg px-3 py-2 text-sm transition-colors"
                 />
                 <button
                   type="submit"
+                  title="Search all library"
                   className="sv-search-btn flex-none flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
                 >
                   <Search size={13} />
@@ -270,6 +357,40 @@ export default function LibraryPanel({
                 <RefreshCw size={13} className={scanning ? 'animate-spin' : ''} />
               </button>
             </div>
+
+            {section === 'library' && (
+              <div className="mt-2.5 flex items-center justify-between gap-3">
+                <div className="inline-flex rounded-lg border border-slate-700/60 bg-slate-800/40 p-0.5">
+                  {[
+                    ['artists', 'Artists'],
+                    ['albums', 'Albums'],
+                  ].map(([tabId, label]) => (
+                    <button
+                      key={tabId}
+                      onClick={() => handleLibraryTabChange(tabId)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        activeLibraryTab === tabId
+                          ? 'bg-slate-700 text-slate-100'
+                          : 'text-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {view === 'search' && (
+                  <button
+                    onClick={() => {
+                      setLibQuery('')
+                      exitSearch()
+                    }}
+                    className="text-[11px] text-slate-500 hover:text-slate-200 transition-colors"
+                  >
+                    Back to {browseTab === 'albums' ? 'Albums' : 'Artists'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {breadcrumbs.length > 0 && (
               <div className="mt-2.5">
@@ -354,12 +475,12 @@ export default function LibraryPanel({
                   <button
                     onClick={() => {
                       onNavigate('library')
-                      loadArtists()
+                      openLibrary()
                     }}
                     className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
                   >
                     <p className="text-[10px] uppercase tracking-widest text-slate-500">Library</p>
-                    <p className="text-sm text-slate-200 mt-1">Browse Artists</p>
+                    <p className="text-sm text-slate-200 mt-1">Open Library</p>
                   </button>
                   <button
                     onClick={() => {
@@ -476,7 +597,7 @@ export default function LibraryPanel({
             {/* Artists view */}
             {!loading && !error && view === 'artists' && (
               <ul className="py-1">
-                {artists.map((artist) => (
+                {filteredArtists.map((artist) => (
                   <li key={artist.id}>
                     <button
                       onClick={() => goToArtist(artist)}
@@ -520,7 +641,146 @@ export default function LibraryPanel({
                     </div>
                   </li>
                 )}
+                {artists.length > 0 && filteredArtists.length === 0 && (
+                  <li className="flex flex-col items-center justify-center py-16 gap-3 text-slate-700">
+                    <Mic2 size={28} strokeWidth={1.5} />
+                    <div className="text-center">
+                      <p className="text-sm">No artists match</p>
+                      <p className="text-xs mt-1 text-slate-700">Try a different filter</p>
+                    </div>
+                  </li>
+                )}
               </ul>
+            )}
+
+            {/* Global albums view */}
+            {!loading && !error && view === 'albums' && (
+              <>
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/50">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    {normalizedLibQuery ? `${filteredAllAlbums.length} matches` : 'All Albums'}
+                  </p>
+                  <div className="flex gap-0.5">
+                    <button
+                      onClick={() => {
+                        setAlbumsView('list')
+                        localStorage.setItem('sv-albums-view', 'list')
+                      }}
+                      title="List view"
+                      className={`p-1.5 rounded transition-colors ${albumsView === 'list' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`}
+                    >
+                      <LayoutList size={14} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAlbumsView('grid')
+                        localStorage.setItem('sv-albums-view', 'grid')
+                      }}
+                      title="Grid view"
+                      className={`p-1.5 rounded transition-colors ${albumsView === 'grid' ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}`}
+                    >
+                      <LayoutGrid size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {filteredAllAlbums.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-700">
+                    <Disc size={28} strokeWidth={1.5} />
+                    <div className="text-center">
+                      <p className="text-sm">
+                        {allAlbums.length === 0 ? 'No albums yet' : 'No albums match'}
+                      </p>
+                      <p className="text-xs mt-1 text-slate-700">
+                        {allAlbums.length === 0
+                          ? 'Download songs from Soulseek'
+                          : 'Try a different filter'}
+                      </p>
+                    </div>
+                  </div>
+                ) : albumsView === 'list' ? (
+                  <ul className="py-1">
+                    {filteredAllAlbums.map((album) => (
+                      <li key={album.id}>
+                        <button
+                          onClick={() => goToAlbum(album, { origin: 'albums' })}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50 group-hover:border-slate-600 transition-colors">
+                            {album.coverArt ? (
+                              <img
+                                src={artUrl(album.coverArt, 80)}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Disc size={16} className="text-slate-600" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-200 truncate">{album.name}</p>
+                            <p className="text-xs text-slate-600 truncate">
+                              {[album.artist, album.year].filter(Boolean).join(' · ')}
+                            </p>
+                          </div>
+                          <ChevronRight
+                            size={13}
+                            className="text-slate-700 group-hover:text-slate-500 transition-colors flex-none"
+                          />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1 p-2">
+                    {filteredAllAlbums.map((album) => (
+                      <button
+                        key={album.id}
+                        onClick={() => goToAlbum(album, { origin: 'albums' })}
+                        className="flex flex-col gap-0 text-left group rounded-md p-1.5 hover:bg-slate-800/70 transition-colors"
+                      >
+                        <div className="aspect-square w-full rounded-sm bg-slate-800 overflow-hidden mb-1.5">
+                          {album.coverArt ? (
+                            <img
+                              src={artUrl(album.coverArt, 100)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Disc size={10} className="text-slate-600" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
+                          {album.name}
+                        </p>
+                        <p className="text-[9px] text-slate-500 truncate w-full leading-snug">
+                          {[album.artist, album.year].filter(Boolean).join(' · ')}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(allAlbumsHasMore || loadingMoreAlbums) && (
+                  <div className="px-4 py-3 border-t border-slate-800/40 flex justify-center">
+                    <button
+                      onClick={() => loadMoreAlbums()}
+                      disabled={loadingMoreAlbums}
+                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                        loadingMoreAlbums
+                          ? 'bg-slate-800 text-slate-600 cursor-default'
+                          : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      {loadingMoreAlbums ? 'Loading…' : 'Load more albums'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Artist albums view */}
@@ -852,7 +1112,7 @@ export default function LibraryPanel({
                       {searchResults.albums.map((album) => (
                         <li key={album.id}>
                           <button
-                            onClick={() => goToAlbum(album)}
+                            onClick={() => goToAlbum(album, { origin: 'search' })}
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-800/50 text-left transition-colors group"
                           >
                             <div className="w-8 h-8 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50">

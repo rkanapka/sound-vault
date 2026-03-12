@@ -38,9 +38,7 @@ async def test_get_starred_empty(client):
 async def test_get_starred_with_songs(client):
     with respx.mock:
         respx.get(f"{ND_BASE}/rest/getStarred2.view").mock(
-            return_value=httpx.Response(
-                200, json=nd_ok(starred2={"song": [SONG]})
-            )
+            return_value=httpx.Response(200, json=nd_ok(starred2={"song": [SONG]}))
         )
         r = await client.get("/api/library/starred")
     assert r.status_code == 200
@@ -63,9 +61,7 @@ async def test_get_starred_auth_error(client):
 @pytest.mark.asyncio
 async def test_get_starred_navidrome_http_error(client):
     with respx.mock:
-        respx.get(f"{ND_BASE}/rest/getStarred2.view").mock(
-            return_value=httpx.Response(503)
-        )
+        respx.get(f"{ND_BASE}/rest/getStarred2.view").mock(return_value=httpx.Response(503))
         r = await client.get("/api/library/starred")
     assert r.status_code == 502
 
@@ -76,9 +72,7 @@ async def test_get_starred_navidrome_http_error(client):
 @pytest.mark.asyncio
 async def test_star_song(client):
     with respx.mock:
-        respx.get(f"{ND_BASE}/rest/star.view").mock(
-            return_value=httpx.Response(200, json=nd_ok())
-        )
+        respx.get(f"{ND_BASE}/rest/star.view").mock(return_value=httpx.Response(200, json=nd_ok()))
         r = await client.post("/api/library/star?id=s1")
     assert r.status_code == 200
     assert r.json()["subsonic-response"]["status"] == "ok"

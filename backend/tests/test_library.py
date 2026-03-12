@@ -322,6 +322,19 @@ async def test_get_album_list_recent(client):
 
 
 @pytest.mark.asyncio
+async def test_get_album_list_forwards_offset_and_custom_type(client):
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getAlbumList2.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(albumList2={"album": []}))
+        )
+        r = await client.get("/api/library/album-list?type=alphabeticalByName&size=50&offset=100")
+    assert r.status_code == 200
+    assert "type=alphabeticalByName" in str(route.calls[0].request.url)
+    assert "size=50" in str(route.calls[0].request.url)
+    assert "offset=100" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
 async def test_get_album_list_default_params(client):
     """Defaults to type=newest, size=20 when not specified."""
     with respx.mock:
@@ -332,6 +345,7 @@ async def test_get_album_list_default_params(client):
     assert r.status_code == 200
     assert "type=newest" in str(route.calls[0].request.url)
     assert "size=20" in str(route.calls[0].request.url)
+    assert "offset=0" in str(route.calls[0].request.url)
 
 
 @pytest.mark.asyncio
