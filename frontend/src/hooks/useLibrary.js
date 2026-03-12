@@ -16,7 +16,7 @@ const LIBRARY_ALBUM_ID_KEY = 'sv-lib-album-id'
 const ALBUM_PAGE_SIZE = 100
 
 function getStoredBrowseTab() {
-  return localStorage.getItem(LIBRARY_TAB_KEY) === 'albums' ? 'albums' : 'artists'
+  return localStorage.getItem(LIBRARY_TAB_KEY) === 'artists' ? 'artists' : 'albums'
 }
 
 function persistBrowseTab(tab) {
