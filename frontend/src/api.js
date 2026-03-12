@@ -43,6 +43,11 @@ export const deleteSong = (id) => apiFetch('DELETE', `/api/library/song/${id}`)
 export const scrobbleSong = (id) =>
   apiFetch('POST', `/api/library/scrobble?id=${encodeURIComponent(id)}`)
 
+// --- Discover ---
+export const getDiscoverBootstrap = () => apiFetch('GET', '/api/discover/bootstrap')
+export const getDiscoverTag = (tag) =>
+  apiFetch('GET', `/api/discover/tag/${encodeURIComponent(tag)}`)
+
 // --- Playlists ---
 export const getPlaylists = () => apiFetch('GET', '/api/library/playlists')
 export const getPlaylist = (id) => apiFetch('GET', `/api/library/playlist/${id}`)

@@ -3,9 +3,11 @@
 [![CI](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/rkanapka/sound-vault/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/rkanapka/sound-vault/branch/main/graph/badge.svg)](https://codecov.io/gh/rkanapka/sound-vault)
 
-A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/navidrome/) and [slskd](https://github.com/slskd/slskd) into a single web interface.
+A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/navidrome/), [Last.fm](https://www.last.fm/api), and [slskd](https://github.com/slskd/slskd) into a single web interface.
 
 **Navidrome** is a self-hosted music server. It indexes your local music files, exposes them via the Subsonic API, and handles streaming. SoundVault uses it as the music library backend - browsing artists and albums, playing songs, and fetching cover art all go through Navidrome.
+
+**Last.fm** powers SoundVault's Discover tab. Tag-based exploration uses Last.fm charts and tag endpoints, while SoundVault resolves matches back into Navidrome so you can open local artists, albums, and tracks directly.
 
 **Soulseek** is a peer-to-peer network for sharing music. slskd is a self-hosted Soulseek client with an HTTP API. SoundVault uses it to search the Soulseek network and queue downloads directly from the UI - so you can find a release, download it, and it lands in your music folder where Navidrome picks it up after a scan.
 
@@ -86,6 +88,16 @@ Secret = "your-lastfm-shared-secret"
 
 `navidrome.toml` is intentionally gitignored, so credentials stay local. If those values are omitted, Navidrome keeps using its normal local or embedded artwork flow.
 With Last.fm configured, Navidrome can enrich artist and album data such as images, biographies, and descriptions.
+
+**Optional: Last.fm Discover**
+
+To enable SoundVault's Discover tab, set a Last.fm API key in `.env`:
+
+```bash
+LASTFM_API_KEY=your-lastfm-api-key
+```
+
+This key is read by the SoundVault backend and is separate from Navidrome's Last.fm metadata settings above.
 
 The artwork lookup order itself is defined in [`navidrome.toml.example`](./navidrome.toml.example). The local `navidrome.toml` file is mounted into `/data/navidrome.toml`.
 

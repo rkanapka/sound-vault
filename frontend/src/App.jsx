@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
+import { getSong } from './api'
 import { usePlayer } from './hooks/usePlayer'
+import { useDiscover } from './hooks/useDiscover'
 import { useSearch } from './hooks/useSearch'
 import { useLibrary } from './hooks/useLibrary'
 import { usePlaylists } from './hooks/usePlaylists'
 import { useFavorites } from './hooks/useFavorites'
+import DiscoverPanel from './components/DiscoverPanel'
 import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
 import BrandMark from './components/BrandMark'
-import { Globe, Heart, Home, Library, ListMusic } from 'lucide-react'
+import { Compass, Globe, Heart, Home, Library, ListMusic } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 const spacebarTrackButtonSelector = '[data-spacebar-play-toggle]'
@@ -29,15 +32,17 @@ function shouldHandleSpacebarShortcut(target) {
 
 export default function App() {
   const player = usePlayer()
+  const discover = useDiscover()
   const search = useSearch()
   const library = useLibrary()
   const playlists = usePlaylists()
   const favorites = useFavorites()
   const { song: currentSong, togglePlay } = player
   const [infoSong, setInfoSong] = useState(null)
-  const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'library' | 'playlists' | 'favorites' | 'soulseek'
+  const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'discover' | 'library' | 'playlists' | 'favorites' | 'soulseek'
 
   useEffect(() => {
+    discover.init()
     library.init()
     playlists.init()
     favorites.init()
@@ -55,6 +60,37 @@ export default function App() {
     playlists.backToList()
     loadPlaylists()
     setActiveRoute('playlists')
+  }
+
+  const openDiscoverArtist = async (card) => {
+    if (!card.artistId) return
+    setActiveRoute('library')
+    await library.goToArtist({ id: card.artistId, name: card.title })
+  }
+
+  const openDiscoverAlbum = async (card) => {
+    if (!card.albumId) return
+    setActiveRoute('library')
+    await library.goToAlbum(
+      { id: card.albumId, artistId: card.artistId ?? null },
+      { origin: 'albums' }
+    )
+  }
+
+  const playDiscoverTrack = async (card) => {
+    if (!card.songId) return
+    const data = await getSong(card.songId)
+    const song = data?.['subsonic-response']?.song
+    if (!song) return
+    player.play([song], 0)
+  }
+
+  const sendDiscoverQueryToSoulseek = async (query) => {
+    const normalizedQuery = query?.trim()
+    if (!normalizedQuery) return
+    search.setQuery(normalizedQuery)
+    setActiveRoute('soulseek')
+    await search.startSearch(normalizedQuery)
   }
 
   useEffect(() => {
@@ -95,6 +131,16 @@ export default function App() {
             Home
           </button>
           <button
+            onClick={() => setActiveRoute('discover')}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeRoute === 'discover'
+                ? 'text-emerald-400 border-emerald-400'
+                : 'text-slate-500 border-transparent hover:text-slate-300'
+            }`}
+          >
+            Discover
+          </button>
+          <button
             onClick={() => setActiveRoute('library')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeRoute === 'library'
@@ -131,7 +177,15 @@ export default function App() {
 
         {/* Active panel */}
         <main className="flex flex-1 min-h-0 overflow-hidden">
-          {activeRoute === 'soulseek' ? (
+          {activeRoute === 'discover' ? (
+            <DiscoverPanel
+              discover={discover}
+              onOpenArtist={openDiscoverArtist}
+              onOpenAlbum={openDiscoverAlbum}
+              onPlayTrack={playDiscoverTrack}
+              onSearchSoulseek={sendDiscoverQueryToSoulseek}
+            />
+          ) : activeRoute === 'soulseek' ? (
             <SearchPanel search={search} embedded />
           ) : (
             <LibraryPanel
@@ -185,6 +239,20 @@ export default function App() {
             >
               <Home size={14} />
               <span>Home</span>
+            </button>
+            <button
+              onClick={() => setActiveRoute('discover')}
+              className={`
+                w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'discover'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <Compass size={14} />
+              <span>Discover</span>
             </button>
             <button
               onClick={() => setActiveRoute('library')}
@@ -277,7 +345,15 @@ export default function App() {
           </div>
         </nav>
 
-        {activeRoute === 'soulseek' ? (
+        {activeRoute === 'discover' ? (
+          <DiscoverPanel
+            discover={discover}
+            onOpenArtist={openDiscoverArtist}
+            onOpenAlbum={openDiscoverAlbum}
+            onPlayTrack={playDiscoverTrack}
+            onSearchSoulseek={sendDiscoverQueryToSoulseek}
+          />
+        ) : activeRoute === 'soulseek' ? (
           <SearchPanel search={search} embedded />
         ) : (
           <LibraryPanel

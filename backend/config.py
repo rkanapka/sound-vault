@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     navidrome_user: str
     navidrome_pass: str
     music_dir: str = "/music"
+    lastfm_api_key: str | None = None
 
 
 settings = Settings()
