@@ -12,7 +12,7 @@ services:
       - NAVIDROME_URL=${NAVIDROME_URL:-http://navidrome:4533}
       - SLSKD_URL=${SLSKD_URL:-http://slskd:5030}
     volumes:
-      - ${MUSIC_DIR}/music:/music
+      - ${MUSIC_DIR:-./music}:/music
     ports:
       - ${SOUNDVAULT_PORT:-7070}:8080
 
@@ -27,7 +27,7 @@ services:
       - SLSKD_SLSK_PASSWORD=${SLSKD_PASSWORD}
     volumes:
       - ${DATA_DIR:-./data}:/app
-      - ${MUSIC_DIR}/music:/music
+      - ${MUSIC_DIR:-./music}:/music
     ports:
       - 5030:5030    # web UI (local network only)
       - 50300:50300  # Soulseek peer port (optional: forward on router for better speeds)
@@ -43,6 +43,6 @@ services:
       ND_BASEURL: ""
     volumes:
       - ${DATA_DIR:-./data}:/data
-      - ${MUSIC_DIR}/music:/music:ro
+      - ${MUSIC_DIR:-./music}:/music:ro
     ports:
       - 4533:4533

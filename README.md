@@ -59,7 +59,7 @@ Edit `.env`:
 
 | Variable | Description |
 |---|---|
-| `MUSIC_DIR` | Absolute path to your music folder on the host |
+| `MUSIC_DIR` | Path to your music folder on the host. Defaults to `./music` next to the compose file |
 | `SLSKD_USERNAME` | Your Soulseek username |
 | `SLSKD_PASSWORD` | Your Soulseek password |
 | `NAVIDROME_USER` | Navidrome admin username (set after first login) |
