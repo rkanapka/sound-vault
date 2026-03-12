@@ -30,6 +30,10 @@ function fmtDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+function normalizeArtistName(name) {
+  return name?.trim().toLocaleLowerCase() ?? ''
+}
+
 export default function LibraryPanel({
   library,
   player,
@@ -104,6 +108,27 @@ export default function LibraryPanel({
     if (tracksSort === 'duration') return arr.sort((a, b) => (a.duration ?? 0) - (b.duration ?? 0))
     return arr
   }, [tracks, tracksSort])
+
+  const trackArtists = useMemo(() => {
+    const artistsByKey = new Map()
+    tracks.forEach((track) => {
+      const artist = track.artist?.trim()
+      const normalizedArtist = normalizeArtistName(artist)
+      if (!normalizedArtist || artistsByKey.has(normalizedArtist)) return
+      artistsByKey.set(normalizedArtist, artist)
+    })
+    return Array.from(artistsByKey.values()).sort((a, b) => a.localeCompare(b))
+  }, [tracks])
+
+  const albumTrackCount = currentAlbum?.songCount ?? tracks.length
+  const albumMeta = [
+    currentAlbum?.year,
+    albumTrackCount ? `${albumTrackCount} ${albumTrackCount === 1 ? 'track' : 'tracks'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const isCompilationAlbum =
+    normalizeArtistName(currentAlbum?.artist) === 'various artists' || trackArtists.length > 1
 
   const reloadView = useCallback(() => {
     if (view === 'album' && currentAlbum) goToAlbum(currentAlbum)
@@ -609,6 +634,36 @@ export default function LibraryPanel({
             {/* Album tracks view */}
             {!loading && !error && view === 'album' && (
               <>
+                <div className="px-4 py-3 border-b border-slate-800/40 bg-slate-900/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-medium text-slate-100 truncate">
+                        {currentAlbum?.name || 'Album'}
+                      </h2>
+                      {currentAlbum?.artist && (
+                        <p className="mt-0.5 text-sm text-slate-400 truncate">
+                          {currentAlbum.artist}
+                        </p>
+                      )}
+                      {albumMeta && <p className="mt-1 text-xs text-slate-500">{albumMeta}</p>}
+                    </div>
+                    {(isCompilationAlbum || trackArtists.length > 1) && (
+                      <div className="flex flex-wrap justify-end gap-1 flex-none">
+                        {isCompilationAlbum && (
+                          <span className="px-2 py-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                            Compilation
+                          </span>
+                        )}
+                        {trackArtists.length > 1 && (
+                          <span className="px-2 py-1 rounded-full border border-slate-700 bg-slate-800/80 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                            {trackArtists.length} artists
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Tracks sort header */}
                 <div className="flex items-center px-4 py-1 border-b border-slate-800/50 select-none">
                   <button
@@ -669,12 +724,36 @@ export default function LibraryPanel({
                               </span>
                             )}
                           </span>
+                          {isCompilationAlbum && (
+                            <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
+                              {track.artistId ? (
+                                <img
+                                  src={artUrl(track.artistId, 64)}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Mic2 size={12} className="text-slate-600" />
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p
                               className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
                             >
                               {track.title}
                             </p>
+                            {isCompilationAlbum && track.artist?.trim() && (
+                              <p
+                                className={`text-xs truncate mt-0.5 ${
+                                  isActive ? 'text-emerald-200/75' : 'text-slate-500'
+                                }`}
+                              >
+                                {track.artist}
+                              </p>
+                            )}
                           </div>
                         </button>
 
