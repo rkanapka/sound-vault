@@ -922,7 +922,12 @@ export default function LibraryPanel({
             {!favorites?.loading && !favorites?.error && (
               <>
                 <div className="px-4 pt-3 pb-2 border-b border-slate-800/50">
-                  <h2 className="text-sm font-medium text-slate-200">Liked Songs</h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-medium text-slate-200 truncate">Liked Songs</h2>
+                    <div className="p-1.5 flex-none invisible" aria-hidden="true">
+                      <MoreHorizontal size={13} />
+                    </div>
+                  </div>
                   <p className="text-xs text-slate-600 mt-0.5">
                     {favorites?.songs.length ?? 0}{' '}
                     {(favorites?.songs.length ?? 0) === 1 ? 'track' : 'tracks'}
