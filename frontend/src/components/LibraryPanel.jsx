@@ -16,6 +16,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Heart,
 } from 'lucide-react'
 import { artUrl, deleteSong } from '../api'
 import Breadcrumb from './Breadcrumb'
@@ -35,6 +36,7 @@ export default function LibraryPanel({
   onPlay,
   onShowInfo,
   playlists,
+  favorites,
   section,
   onNavigate,
 }) {
@@ -198,10 +200,10 @@ export default function LibraryPanel({
       {/* Header */}
       <div className="flex-none p-3 border-b border-slate-800">
         <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-2.5">
-          {section === 'playlists' ? 'Playlists' : 'Library'}
+          {section === 'playlists' || section === 'favorites' ? 'Playlists' : 'Library'}
         </p>
 
-        {section !== 'playlists' ? (
+        {section !== 'playlists' && section !== 'favorites' ? (
           <>
             <div className="flex gap-2">
               <form onSubmit={handleSearch} className="flex-1 flex gap-2">
@@ -241,6 +243,14 @@ export default function LibraryPanel({
               </div>
             )}
           </>
+        ) : section === 'favorites' ? (
+          <button
+            onClick={() => onNavigate('playlists')}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <ChevronLeft size={12} />
+            Playlists
+          </button>
         ) : playlists.view === 'detail' ? (
           <button
             onClick={playlists.backToList}
@@ -286,7 +296,7 @@ export default function LibraryPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {/* ── Library section ─────────────────────────────── */}
-        {section !== 'playlists' && (
+        {section !== 'playlists' && section !== 'favorites' && (
           <>
             {/* Loading */}
             {loading && (
@@ -349,10 +359,21 @@ export default function LibraryPanel({
                     <div className="py-2">
                       <div className="w-4 h-4 rounded-full border-2 border-slate-700 border-t-emerald-500 animate-spin" />
                     </div>
-                  ) : playlists.playlists.length === 0 ? (
-                    <p className="text-xs text-slate-700">No playlists yet</p>
                   ) : (
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                      <button
+                        onClick={() => onNavigate('favorites')}
+                        className="flex-none min-w-[150px] rounded-lg border border-slate-700/60 bg-gradient-to-br from-slate-800/80 to-slate-800/30 px-3 py-3 text-left hover:border-slate-500 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Heart size={12} className="text-pink-400 flex-none" />
+                          <p className="text-xs text-slate-100 truncate">Liked Songs</p>
+                        </div>
+                        <p className="mt-1.5 text-[11px] text-slate-500">
+                          {favorites?.songs.length ?? 0}{' '}
+                          {(favorites?.songs.length ?? 0) === 1 ? 'track' : 'tracks'}
+                        </p>
+                      </button>
                       {playlists.playlists.map((pl) => (
                         <button
                           key={pl.id}
@@ -656,11 +677,31 @@ export default function LibraryPanel({
                           </div>
                         </button>
 
-                        {/* Duration + 3-dot menu */}
+                        {/* Duration + heart + 3-dot menu */}
                         <div className="flex items-center gap-1 pr-2 flex-none">
                           <span className="text-xs text-slate-600 tabular-nums">
                             {fmtDuration(track.duration)}
                           </span>
+                          {favorites && (
+                            <button
+                              onClick={() => favorites.toggle(track)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                favorites.starredIds.has(track.id)
+                                  ? 'text-pink-400'
+                                  : 'text-slate-600 hover:text-pink-400 opacity-0 group-hover:opacity-100'
+                              }`}
+                              title={
+                                favorites.starredIds.has(track.id)
+                                  ? 'Remove from favorites'
+                                  : 'Add to favorites'
+                              }
+                            >
+                              <Heart
+                                size={13}
+                                className={favorites.starredIds.has(track.id) ? 'fill-current' : ''}
+                              />
+                            </button>
+                          )}
                           <button
                             onClick={() => setOpenMenuId(openMenuId === track.id ? null : track.id)}
                             className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
@@ -676,6 +717,8 @@ export default function LibraryPanel({
                             onInfo={onShowInfo}
                             onDelete={setConfirmSong}
                             onAddToPlaylist={handleShowAddToPlaylist}
+                            onToggleFavorite={favorites?.toggle}
+                            isFavorited={favorites?.starredIds.has(track.id)}
                             onClose={() => setOpenMenuId(null)}
                           />
                         )}
@@ -791,11 +834,33 @@ export default function LibraryPanel({
                               </div>
                             </button>
 
-                            {/* Duration + 3-dot menu */}
+                            {/* Duration + heart + 3-dot menu */}
                             <div className="flex items-center gap-1 pr-2 flex-none">
                               <span className="text-xs text-slate-600 tabular-nums">
                                 {fmtDuration(song.duration)}
                               </span>
+                              {favorites && (
+                                <button
+                                  onClick={() => favorites.toggle(song)}
+                                  className={`p-1.5 rounded-md transition-colors ${
+                                    favorites.starredIds.has(song.id)
+                                      ? 'text-pink-400'
+                                      : 'text-slate-600 hover:text-pink-400 opacity-0 group-hover:opacity-100'
+                                  }`}
+                                  title={
+                                    favorites.starredIds.has(song.id)
+                                      ? 'Remove from favorites'
+                                      : 'Add to favorites'
+                                  }
+                                >
+                                  <Heart
+                                    size={13}
+                                    className={
+                                      favorites.starredIds.has(song.id) ? 'fill-current' : ''
+                                    }
+                                  />
+                                </button>
+                              )}
                               <button
                                 onClick={() =>
                                   setOpenMenuId(openMenuId === song.id ? null : song.id)
@@ -813,6 +878,8 @@ export default function LibraryPanel({
                                 onInfo={onShowInfo}
                                 onDelete={setConfirmSong}
                                 onAddToPlaylist={handleShowAddToPlaylist}
+                                onToggleFavorite={favorites?.toggle}
+                                isFavorited={favorites?.starredIds.has(song.id)}
                                 onClose={() => setOpenMenuId(null)}
                               />
                             )}
@@ -832,6 +899,123 @@ export default function LibraryPanel({
                     </div>
                   )}
               </div>
+            )}
+          </>
+        )}
+
+        {/* ── Favorites section ───────────────────────────── */}
+        {section === 'favorites' && (
+          <>
+            {favorites?.loading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="w-5 h-5 rounded-full border-2 border-slate-700 border-t-emerald-500 animate-spin" />
+              </div>
+            )}
+
+            {!favorites?.loading && favorites?.error && (
+              <div className="m-4 p-3 bg-red-900/20 border border-red-800/30 rounded-lg flex items-start gap-2 text-sm text-red-400">
+                <AlertCircle size={15} className="flex-none mt-0.5" />
+                <span>{favorites.error}</span>
+              </div>
+            )}
+
+            {!favorites?.loading && !favorites?.error && (
+              <>
+                <div className="px-4 pt-3 pb-2 border-b border-slate-800/50">
+                  <h2 className="text-sm font-medium text-slate-200">Liked Songs</h2>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {favorites?.songs.length ?? 0}{' '}
+                    {(favorites?.songs.length ?? 0) === 1 ? 'track' : 'tracks'}
+                  </p>
+                </div>
+
+                {favorites?.songs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-700">
+                    <Heart size={28} strokeWidth={1.5} />
+                    <div className="text-center">
+                      <p className="text-sm">No favorites yet</p>
+                      <p className="text-xs mt-1">Heart songs via the ··· menu</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ul className="py-1">
+                    {favorites.songs.map((song, idx) => {
+                      const isActive = player.song?.id === song.id
+                      return (
+                        <li
+                          key={song.id}
+                          className={`group relative flex items-center transition-colors ${isActive ? 'bg-emerald-900/20 hover:bg-emerald-900/25' : 'hover:bg-slate-800/50'}`}
+                        >
+                          <button
+                            onClick={() => onPlay(song, favorites.songs)}
+                            className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
+                          >
+                            <span className="w-5 flex items-center justify-center flex-none">
+                              {isActive && player.playing ? (
+                                <span className="sv-eq">
+                                  <span />
+                                  <span />
+                                  <span />
+                                  <span />
+                                </span>
+                              ) : (
+                                <span
+                                  className={`text-xs tabular-nums ${isActive ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-500'}`}
+                                >
+                                  {idx + 1}
+                                </span>
+                              )}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
+                              >
+                                {song.title}
+                              </p>
+                              <p className="text-xs text-slate-600 truncate">
+                                {song.artist}
+                                {song.album ? ` · ${song.album}` : ''}
+                              </p>
+                            </div>
+                          </button>
+
+                          <div className="flex items-center gap-1 pr-2 flex-none">
+                            <span className="text-xs text-slate-600 tabular-nums">
+                              {fmtDuration(song.duration)}
+                            </span>
+                            <button
+                              onClick={() => favorites?.toggle(song)}
+                              className="p-1.5 rounded-md text-pink-400 transition-colors opacity-0 group-hover:opacity-100"
+                              title="Remove from favorites"
+                            >
+                              <Heart size={13} className="fill-current" />
+                            </button>
+                            <button
+                              onClick={() => setOpenMenuId(openMenuId === song.id ? null : song.id)}
+                              className="p-1.5 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+                              title="More options"
+                            >
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </div>
+
+                          {openMenuId === song.id && (
+                            <SongMenu
+                              song={song}
+                              onInfo={onShowInfo}
+                              onDelete={setConfirmSong}
+                              onAddToPlaylist={handleShowAddToPlaylist}
+                              onToggleFavorite={favorites?.toggle}
+                              isFavorited={true}
+                              onClose={() => setOpenMenuId(null)}
+                            />
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </>
             )}
           </>
         )}
@@ -857,6 +1041,25 @@ export default function LibraryPanel({
             {/* Playlist list */}
             {!playlists.loading && !playlists.error && playlists.view === 'list' && (
               <ul className="py-1">
+                <li className="group flex items-center transition-colors hover:bg-slate-800/50">
+                  <button
+                    onClick={() => onNavigate('favorites')}
+                    className="flex-1 flex items-center gap-3 px-4 py-2.5 text-left min-w-0"
+                  >
+                    <Heart size={13} className="text-pink-400 flex-none" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-200 truncate">Liked Songs</p>
+                      <p className="text-xs text-slate-600">
+                        {favorites?.songs.length ?? 0}{' '}
+                        {(favorites?.songs.length ?? 0) === 1 ? 'track' : 'tracks'}
+                      </p>
+                    </div>
+                    <ChevronRight
+                      size={13}
+                      className="text-slate-700 group-hover:text-slate-500 transition-colors flex-none"
+                    />
+                  </button>
+                </li>
                 {playlists.playlists.map((pl) => (
                   <li
                     key={pl.id}

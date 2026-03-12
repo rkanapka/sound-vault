@@ -3,12 +3,13 @@ import { usePlayer } from './hooks/usePlayer'
 import { useSearch } from './hooks/useSearch'
 import { useLibrary } from './hooks/useLibrary'
 import { usePlaylists } from './hooks/usePlaylists'
+import { useFavorites } from './hooks/useFavorites'
 import SearchPanel from './components/SearchPanel'
 import LibraryPanel from './components/LibraryPanel'
 import Player from './components/Player'
 import NowPlaying from './components/NowPlaying'
 import BrandMark from './components/BrandMark'
-import { Globe, Home, Library, ListMusic } from 'lucide-react'
+import { Globe, Heart, Home, Library, ListMusic } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 
@@ -17,12 +18,14 @@ export default function App() {
   const search = useSearch()
   const library = useLibrary()
   const playlists = usePlaylists()
+  const favorites = useFavorites()
   const [infoSong, setInfoSong] = useState(null)
-  const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'library' | 'playlists' | 'soulseek'
+  const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'library' | 'playlists' | 'favorites' | 'soulseek'
 
   useEffect(() => {
     library.init()
     playlists.init()
+    favorites.init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -106,6 +109,7 @@ export default function App() {
               onPlay={handlePlay}
               onShowInfo={setInfoSong}
               playlists={playlists}
+              favorites={favorites}
               section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
               onNavigate={setActiveRoute}
             />
@@ -202,6 +206,26 @@ export default function App() {
             Playlists
           </p>
           <div className="space-y-1">
+            <button
+              onClick={() => {
+                favorites.load()
+                setActiveRoute('favorites')
+              }}
+              className={`
+                w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-sm transition-colors
+                ${
+                  activeRoute === 'favorites'
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }
+              `}
+            >
+              <Heart size={14} />
+              <span>Liked Songs</span>
+              {favorites.songs.length > 0 && (
+                <span className="ml-auto text-xs text-slate-500">{favorites.songs.length}</span>
+              )}
+            </button>
             {playlistList.slice(0, 8).map((playlist) => (
               <button
                 key={playlist.id}
@@ -230,6 +254,7 @@ export default function App() {
             onPlay={handlePlay}
             onShowInfo={setInfoSong}
             playlists={playlists}
+            favorites={favorites}
             section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
             onNavigate={setActiveRoute}
           />

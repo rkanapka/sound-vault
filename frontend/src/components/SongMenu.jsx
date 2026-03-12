@@ -1,6 +1,14 @@
-import { Info, ListPlus, Trash2 } from 'lucide-react'
+import { Heart, Info, ListPlus, Trash2 } from 'lucide-react'
 
-export default function SongMenu({ song, onInfo, onDelete, onAddToPlaylist, onClose }) {
+export default function SongMenu({
+  song,
+  onInfo,
+  onDelete,
+  onAddToPlaylist,
+  onToggleFavorite,
+  isFavorited,
+  onClose,
+}) {
   return (
     <>
       {/* Transparent backdrop to close on outside click */}
@@ -18,6 +26,21 @@ export default function SongMenu({ song, onInfo, onDelete, onAddToPlaylist, onCl
           <Info size={14} className="sv-menu-icon flex-none" />
           Song Info
         </button>
+        {onToggleFavorite && (
+          <button
+            onClick={() => {
+              onToggleFavorite(song)
+              onClose()
+            }}
+            className="sv-menu-item w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left"
+          >
+            <Heart
+              size={14}
+              className={`flex-none ${isFavorited ? 'fill-current text-pink-400' : 'sv-menu-icon'}`}
+            />
+            {isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+          </button>
+        )}
         {onAddToPlaylist && (
           <button
             onClick={() => {

@@ -48,6 +48,12 @@ export const createPlaylist = (name, songIds = []) =>
 export const updatePlaylist = (id, patch) => apiFetch('PUT', `/api/library/playlist/${id}`, patch)
 export const deletePlaylist = (id) => apiFetch('DELETE', `/api/library/playlist/${id}`)
 
+// --- Favorites ---
+export const getStarred = () => apiFetch('GET', '/api/library/starred')
+export const starSong = (id) => apiFetch('POST', `/api/library/star?id=${encodeURIComponent(id)}`)
+export const unstarSong = (id) =>
+  apiFetch('POST', `/api/library/unstar?id=${encodeURIComponent(id)}`)
+
 // URL helpers - used directly as <audio src> and <img src>
 export const streamUrl = (id) => `/api/library/stream/${id}`
 export const artUrl = (id, size = 200) => `/api/library/art/${id}?size=${size}`

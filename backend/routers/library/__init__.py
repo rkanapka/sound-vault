@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from .albums import router as albums_router
 from .artists import router as artists_router
+from .favorites import router as favorites_router
 from .files import router as files_router
 from .maintenance import router as maintenance_router
 from .media import router as media_router
@@ -18,3 +19,4 @@ router.include_router(media_router)
 router.include_router(maintenance_router)
 router.include_router(files_router)
 router.include_router(playlists_router)
+router.include_router(favorites_router)
