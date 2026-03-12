@@ -53,6 +53,7 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 git clone https://github.com/rkanapka/sound-vault.git
 cd sound-vault
 cp .env.example .env
+cp navidrome.toml.example navidrome.toml
 ```
 
 Edit `.env`:
@@ -72,6 +73,23 @@ docker compose up -d navidrome
 ```
 
 Open `http://localhost:4533`, complete the Navidrome setup wizard, then set the credentials in `.env` to match.
+
+**Optional: Last.fm metadata**
+
+Add your Last.fm API credentials directly to `navidrome.toml`:
+
+```toml
+[LastFM]
+ApiKey = "your-lastfm-api-key"
+Secret = "your-lastfm-shared-secret"
+```
+
+`navidrome.toml` is intentionally gitignored, so credentials stay local. If those values are omitted, Navidrome keeps using its normal local or embedded artwork flow.
+With Last.fm configured, Navidrome can enrich artist and album data such as images, biographies, and descriptions.
+
+The artwork lookup order itself is defined in [`navidrome.toml.example`](./navidrome.toml.example). The local `navidrome.toml` file is mounted into `/data/navidrome.toml`.
+
+After adding or changing these values, restart Navidrome and trigger a library scan from SoundVault or the Navidrome UI.
 
 **3. Start all services**
 
@@ -103,7 +121,9 @@ To run sound-vault without cloning the repo, download the compose file and envir
 
 ```bash
 curl -O https://raw.githubusercontent.com/rkanapka/sound-vault/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/rkanapka/sound-vault/main/navidrome.toml.example
 curl -o .env https://raw.githubusercontent.com/rkanapka/sound-vault/main/.env.example
+cp navidrome.toml.example navidrome.toml
 ```
 
 Edit `.env` with your settings, then start everything:

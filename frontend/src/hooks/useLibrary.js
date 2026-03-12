@@ -64,6 +64,16 @@ function getAlbumBreadcrumbs(album, origin) {
   ]
 }
 
+function mergeItemById(items, nextItem) {
+  let changed = false
+  const merged = items.map((item) => {
+    if (item.id !== nextItem.id) return item
+    changed = true
+    return { ...item, ...nextItem }
+  })
+  return changed ? merged : items
+}
+
 export function useLibrary() {
   const [view, setView] = useState('artists') // 'home' | 'artists' | 'albums' | 'artist' | 'album' | 'search'
   const [browseTab, setBrowseTabState] = useState(getStoredBrowseTab)
@@ -228,6 +238,7 @@ export function useLibrary() {
         const resp = data['subsonic-response']
         const artistData = resp.artist
         setCurrentArtist(artistData)
+        setArtists((prev) => mergeItemById(prev, artistData))
         setAlbums(artistData.album || [])
         setView('artist')
         setBreadcrumbs([{ label: 'Artists', action: 'artists' }])
@@ -295,6 +306,14 @@ export function useLibrary() {
         const resp = data['subsonic-response']
         const albumData = resp.album
         setCurrentAlbum(albumData)
+        setAlbums((prev) => mergeItemById(prev, albumData))
+        setNewestAlbums((prev) => mergeItemById(prev, albumData))
+        setRecentAlbums((prev) => mergeItemById(prev, albumData))
+        setAllAlbums((prev) => mergeItemById(prev, albumData))
+        allAlbumsRef.current = mergeItemById(allAlbumsRef.current, albumData)
+        setSearchResults((prev) =>
+          prev ? { ...prev, albums: mergeItemById(prev.albums, albumData) } : prev
+        )
         setTracks(albumData.song || [])
         setView('album')
         setBreadcrumbs(getAlbumBreadcrumbs(albumData, origin))

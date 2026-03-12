@@ -59,4 +59,8 @@ export const unstarSong = (id) =>
 
 // URL helpers - used directly as <audio src> and <img src>
 export const streamUrl = (id) => `/api/library/stream/${id}`
-export const artUrl = (id, size = 200) => `/api/library/art/${id}?size=${size}`
+export const artUrl = (id, size = 200, cacheKey = '') => {
+  const params = new URLSearchParams({ size: String(size) })
+  if (cacheKey) params.set('v', cacheKey)
+  return `/api/library/art/${encodeURIComponent(id)}?${params.toString()}`
+}

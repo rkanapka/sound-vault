@@ -41,8 +41,10 @@ services:
       ND_LOGLEVEL: info
       ND_SESSIONTIMEOUT: 24h
       ND_BASEURL: ""
+      ND_CONFIGFILE: /data/navidrome.toml
     volumes:
       - ${DATA_DIR:-./data}:/data
+      - ./navidrome.toml:/data/navidrome.toml:ro
       - ${MUSIC_DIR:-./music}:/music:ro
     ports:
       - 4533:4533

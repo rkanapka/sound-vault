@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2, VolumeX } from 'lucide-react'
 import { artUrl } from '../api'
+import { getSongArtTarget } from '../utils/artwork'
 
 function fmtTime(sec) {
   if (!sec || isNaN(sec) || !isFinite(sec)) return '0:00'
@@ -60,6 +61,7 @@ export default function Player({ player, onShowDetails }) {
   }
 
   if (!song) return null
+  const art = getSongArtTarget(song)
 
   return (
     <footer className="flex-none border-t border-slate-800 bg-slate-900 px-4 py-3">
@@ -76,9 +78,9 @@ export default function Player({ player, onShowDetails }) {
                 : 'rounded-md border-slate-700/50 group-hover:border-slate-600'
             }`}
           >
-            {song.artistId || song.coverArt ? (
+            {art ? (
               <img
-                src={artUrl(song.artistId ?? song.coverArt, 88)}
+                src={artUrl(art.id, 88, art.cacheKey)}
                 alt=""
                 className="w-full h-full object-cover sv-album-spin"
                 style={{ animationPlayState: playing ? 'running' : 'paused' }}

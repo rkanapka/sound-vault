@@ -1,5 +1,6 @@
 # Environment
 .env
+/navidrome.toml
 
 # Runtime data (databases, cache, slskd app data)
 data/

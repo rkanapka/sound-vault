@@ -22,6 +22,7 @@ import { artUrl, deleteSong } from '../api'
 import Breadcrumb from './Breadcrumb'
 import SongMenu from './SongMenu'
 import DeleteConfirmModal from './DeleteConfirmModal'
+import { getItemArtTarget, getSongArtTarget, getSongListArtTarget } from '../utils/artwork'
 
 function fmtDuration(secs) {
   if (!secs) return ''
@@ -32,6 +33,45 @@ function fmtDuration(secs) {
 
 function normalizeArtistName(name) {
   return name?.trim().toLocaleLowerCase() ?? ''
+}
+
+function getArtSrc(item, size) {
+  const art = getItemArtTarget(item)
+  return art ? artUrl(art.id, size, art.cacheKey) : null
+}
+
+function getSongArtSrc(song, size) {
+  const art = getSongListArtTarget(song)
+  return art ? artUrl(art.id, size, art.cacheKey) : null
+}
+
+function getAlbumTrackArtSrc(song, size) {
+  const art = getSongArtTarget(song)
+  return art ? artUrl(art.id, size, art.cacheKey) : null
+}
+
+function ExpandableText({ text, expanded, onToggle, previewLength = 320 }) {
+  const normalized = text?.trim()
+  if (!normalized) return null
+
+  const isLong = normalized.length > previewLength
+  const displayText =
+    expanded || !isLong ? normalized : `${normalized.slice(0, previewLength).trimEnd()}...`
+
+  return (
+    <div className="mt-2">
+      <p className="text-xs leading-5 text-slate-400 whitespace-pre-line">{displayText}</p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-2 text-[11px] font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  )
 }
 
 const favoritesListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 4.25rem'
@@ -96,6 +136,8 @@ export default function LibraryPanel({
   const [tracksSort, setTracksSort] = useState(
     () => localStorage.getItem('sv-tracks-sort') ?? 'track'
   )
+  const [artistBioExpanded, setArtistBioExpanded] = useState(false)
+  const [albumDescriptionExpanded, setAlbumDescriptionExpanded] = useState(false)
 
   const [playlistMenuId, setPlaylistMenuId] = useState(null)
   const [createPlaylistMode, setCreatePlaylistMode] = useState(false)
@@ -180,6 +222,14 @@ export default function LibraryPanel({
       return
     ensureAllAlbumsLoaded()
   }, [section, activeLibraryTab, view, normalizedLibQuery, ensureAllAlbumsLoaded])
+
+  useEffect(() => {
+    setArtistBioExpanded(false)
+  }, [currentArtist?.id])
+
+  useEffect(() => {
+    setAlbumDescriptionExpanded(false)
+  }, [currentAlbum?.id])
 
   const reloadView = useCallback(() => {
     if (view === 'album' && currentAlbum) goToAlbum(currentAlbum, { origin: currentAlbumOrigin })
@@ -568,9 +618,9 @@ export default function LibraryPanel({
                             className="flex-none w-24 group text-left"
                           >
                             <div className="w-24 h-24 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 group-hover:border-slate-500 transition-colors mb-1.5 shadow-sm">
-                              {album.coverArt ? (
+                              {getArtSrc(album, 192) ? (
                                 <img
-                                  src={artUrl(album.coverArt, 192)}
+                                  src={getArtSrc(album, 192)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                 />
@@ -605,9 +655,9 @@ export default function LibraryPanel({
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
                     >
                       <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center flex-none border border-slate-700/50 group-hover:border-slate-600 transition-colors overflow-hidden">
-                        {artist.coverArt ? (
+                        {getArtSrc(artist, 56) ? (
                           <img
-                            src={artUrl(artist.coverArt, 56)}
+                            src={getArtSrc(artist, 56)}
                             alt=""
                             className="w-full h-full object-cover"
                           />
@@ -708,9 +758,9 @@ export default function LibraryPanel({
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
                         >
                           <div className="w-10 h-10 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50 group-hover:border-slate-600 transition-colors">
-                            {album.coverArt ? (
+                            {getArtSrc(album, 80) ? (
                               <img
-                                src={artUrl(album.coverArt, 80)}
+                                src={getArtSrc(album, 80)}
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
@@ -743,9 +793,9 @@ export default function LibraryPanel({
                         className="flex flex-col gap-0 text-left group rounded-md p-1 hover:bg-slate-800/70 transition-colors"
                       >
                         <div className="aspect-square w-full rounded-md bg-slate-800 overflow-hidden mb-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
-                          {album.coverArt ? (
+                          {getArtSrc(album, 160) ? (
                             <img
-                              src={artUrl(album.coverArt, 160)}
+                              src={getArtSrc(album, 160)}
                               alt=""
                               className="w-full h-full object-cover"
                             />
@@ -787,6 +837,40 @@ export default function LibraryPanel({
             {/* Artist albums view */}
             {!loading && !error && view === 'artist' && (
               <>
+                <div className="px-4 py-4 border-b border-slate-800/40 bg-slate-900/30">
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 rounded-full bg-slate-800 overflow-hidden border border-slate-700/50 flex-none shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+                      {getArtSrc(currentArtist, 128) ? (
+                        <img
+                          src={getArtSrc(currentArtist, 128)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Mic2 size={22} className="text-slate-600" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-sm font-medium text-slate-100 truncate">
+                        {currentArtist?.name || 'Artist'}
+                      </h2>
+                      {currentArtist?.albumCount > 0 && (
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {currentArtist.albumCount} album
+                          {currentArtist.albumCount !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                      <ExpandableText
+                        text={currentArtist?.biography}
+                        expanded={artistBioExpanded}
+                        onToggle={() => setArtistBioExpanded((value) => !value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* View toggle + sort */}
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/50">
                   <select
@@ -835,9 +919,9 @@ export default function LibraryPanel({
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/50 text-left transition-colors group"
                         >
                           <div className="w-10 h-10 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50 group-hover:border-slate-600 transition-colors">
-                            {album.coverArt ? (
+                            {getArtSrc(album, 80) ? (
                               <img
-                                src={artUrl(album.coverArt, 80)}
+                                src={getArtSrc(album, 80)}
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
@@ -872,9 +956,9 @@ export default function LibraryPanel({
                         className="flex flex-col gap-0 text-left group rounded-md p-1 hover:bg-slate-800/70 transition-colors"
                       >
                         <div className="aspect-square w-full rounded-md bg-slate-800 overflow-hidden mb-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
-                          {album.coverArt ? (
+                          {getArtSrc(album, 160) ? (
                             <img
-                              src={artUrl(album.coverArt, 160)}
+                              src={getArtSrc(album, 160)}
                               alt=""
                               className="w-full h-full object-cover"
                             />
@@ -908,9 +992,9 @@ export default function LibraryPanel({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 flex-none shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-                        {currentAlbum?.coverArt ? (
+                        {getArtSrc(currentAlbum, 240) ? (
                           <img
-                            src={artUrl(currentAlbum.coverArt, 240)}
+                            src={getArtSrc(currentAlbum, 240)}
                             alt=""
                             className="w-full h-full object-cover"
                           />
@@ -930,6 +1014,18 @@ export default function LibraryPanel({
                           </p>
                         )}
                         {albumMeta && <p className="mt-1 text-xs text-slate-500">{albumMeta}</p>}
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {currentAlbum?.genre && (
+                            <span className="px-2 py-1 rounded-full border border-slate-700 bg-slate-800/80 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                              {currentAlbum.genre}
+                            </span>
+                          )}
+                        </div>
+                        <ExpandableText
+                          text={currentAlbum?.description}
+                          expanded={albumDescriptionExpanded}
+                          onToggle={() => setAlbumDescriptionExpanded((value) => !value)}
+                        />
                       </div>
                     </div>
                     {(isCompilationAlbum || trackArtists.length > 1) && (
@@ -1011,9 +1107,9 @@ export default function LibraryPanel({
                           </span>
                           {isCompilationAlbum && (
                             <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                              {track.artistId ? (
+                              {getAlbumTrackArtSrc(track, 64) ? (
                                 <img
-                                  src={artUrl(track.artistId, 64)}
+                                  src={getAlbumTrackArtSrc(track, 64)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                 />
@@ -1109,7 +1205,17 @@ export default function LibraryPanel({
                             onClick={() => goToArtist(artist)}
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-800/50 text-left transition-colors group"
                           >
-                            <Mic2 size={13} className="text-slate-600 flex-none" />
+                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-none overflow-hidden border border-slate-700/50">
+                              {getArtSrc(artist, 64) ? (
+                                <img
+                                  src={getArtSrc(artist, 64)}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Mic2 size={13} className="text-slate-600 flex-none" />
+                              )}
+                            </div>
                             <span className="text-sm text-slate-200 truncate">{artist.name}</span>
                             <ChevronRight size={12} className="text-slate-700 flex-none ml-auto" />
                           </button>
@@ -1132,9 +1238,9 @@ export default function LibraryPanel({
                             className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-800/50 text-left transition-colors group"
                           >
                             <div className="w-8 h-8 rounded-md bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                              {album.coverArt ? (
+                              {getArtSrc(album, 64) ? (
                                 <img
-                                  src={artUrl(album.coverArt, 64)}
+                                  src={getArtSrc(album, 64)}
                                   alt=""
                                   className="w-full h-full object-cover"
                                 />
@@ -1352,9 +1458,9 @@ export default function LibraryPanel({
                                 )}
                               </span>
                               <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                                {song.artistId ? (
+                                {getSongArtSrc(song, 64) ? (
                                   <img
-                                    src={artUrl(song.artistId, 64)}
+                                    src={getSongArtSrc(song, 64)}
                                     alt=""
                                     className="w-full h-full object-cover"
                                   />
@@ -1657,9 +1763,9 @@ export default function LibraryPanel({
                                 )}
                               </span>
                               <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
-                                {track.artistId ? (
+                                {getSongArtSrc(track, 64) ? (
                                   <img
-                                    src={artUrl(track.artistId, 64)}
+                                    src={getSongArtSrc(track, 64)}
                                     alt=""
                                     className="w-full h-full object-cover"
                                   />

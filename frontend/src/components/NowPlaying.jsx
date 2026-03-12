@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X, Music } from 'lucide-react'
 import { getSong, artUrl } from '../api'
+import { getSongArtTarget } from '../utils/artwork'
 
 function fmtSize(bytes) {
   if (!bytes) return null
@@ -29,7 +30,7 @@ export default function NowPlaying({ song, onClose }) {
 
   // Merge: extra has the same fields but may include bpm, comment, etc.
   const s = extra ? { ...song, ...extra } : song
-  const artId = s.artistId ?? s.coverArt ?? null
+  const art = getSongArtTarget(s)
 
   const meta = [
     ['Album', s.album],
@@ -64,8 +65,12 @@ export default function NowPlaying({ song, onClose }) {
 
         {/* Album art */}
         <div className="aspect-square w-full bg-slate-800">
-          {artId ? (
-            <img src={artUrl(artId, 400)} alt="" className="w-full h-full object-cover" />
+          {art ? (
+            <img
+              src={artUrl(art.id, 400, art.cacheKey)}
+              alt=""
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-700">
               <Music size={72} strokeWidth={1} />

@@ -1,0 +1,11 @@
+# Navidrome metadata and artwork settings.
+# Copy this file to ./navidrome.toml and add Last.fm credentials there if desired.
+
+Agents = "lastfm"
+ArtistArtPriority = "external,artist.*,album/artist.*"
+CoverArtPriority = "external,cover.*,folder.*,front.*,embedded"
+
+# Optional Last.fm credentials. Uncomment both lines to enable external metadata lookup.
+# [LastFM]
+# ApiKey = "your-lastfm-api-key"
+# Secret = "your-lastfm-shared-secret"

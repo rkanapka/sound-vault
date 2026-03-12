@@ -35,8 +35,37 @@ async def test_get_artist(client):
         respx.get(f"{ND_BASE}/rest/getArtist.view").mock(
             return_value=httpx.Response(200, json=nd_ok(artist={"id": "1", "name": "Radiohead"}))
         )
+        respx.post(f"{ND_BASE}/auth/login").mock(return_value=httpx.Response(500))
         r = await client.get("/api/library/artist/1")
     assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_get_artist_merges_native_metadata(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getArtist.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(artist={"id": "1", "name": "Radiohead"}))
+        )
+        respx.post(f"{ND_BASE}/auth/login").mock(
+            return_value=httpx.Response(200, json={"token": "tok"})
+        )
+        respx.get(f"{ND_BASE}/api/artist/1").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "biography": "Oxford band",
+                    "largeImageUrl": "https://img.example/radiohead.jpg",
+                    "externalInfoUpdatedAt": "2026-03-12T00:00:00Z",
+                },
+            )
+        )
+        r = await client.get("/api/library/artist/1")
+    assert r.status_code == 200
+    artist = r.json()["subsonic-response"]["artist"]
+    assert artist["biography"] == "Oxford band"
+    assert artist["artistImageUrl"] == "https://img.example/radiohead.jpg"
+    assert artist["largeImageUrl"] == "https://img.example/radiohead.jpg"
+    assert artist["externalInfoUpdatedAt"] == "2026-03-12T00:00:00Z"
 
 
 @pytest.mark.asyncio
@@ -45,8 +74,36 @@ async def test_get_album(client):
         respx.get(f"{ND_BASE}/rest/getAlbum.view").mock(
             return_value=httpx.Response(200, json=nd_ok(album={"id": "1", "name": "OK Computer"}))
         )
+        respx.post(f"{ND_BASE}/auth/login").mock(return_value=httpx.Response(500))
         r = await client.get("/api/library/album/1")
     assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_get_album_merges_native_metadata(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getAlbum.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(album={"id": "1", "name": "OK Computer"}))
+        )
+        respx.post(f"{ND_BASE}/auth/login").mock(
+            return_value=httpx.Response(200, json={"token": "tok"})
+        )
+        respx.get(f"{ND_BASE}/api/album/1").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "description": "Seminal record",
+                    "largeImageUrl": "https://img.example/okc.jpg",
+                    "externalInfoUpdatedAt": "2026-03-12T00:00:00Z",
+                },
+            )
+        )
+        r = await client.get("/api/library/album/1")
+    assert r.status_code == 200
+    album = r.json()["subsonic-response"]["album"]
+    assert album["description"] == "Seminal record"
+    assert album["largeImageUrl"] == "https://img.example/okc.jpg"
+    assert album["externalInfoUpdatedAt"] == "2026-03-12T00:00:00Z"
 
 
 @pytest.mark.asyncio
@@ -160,6 +217,41 @@ async def test_get_cover_art_size_param(client):
         r = await client.get("/api/library/art/1?size=400")
     assert r.status_code == 200
     assert "size=400" in str(route.calls[0].request.url)
+
+
+@pytest.mark.asyncio
+async def test_get_cover_art_retries_at_400_on_non_image_response(client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("size") == "64":
+            return httpx.Response(200, json=nd_fail(0, "cache miss"))
+        if request.url.params.get("size") == "400":
+            return httpx.Response(
+                200, content=b"image-data", headers={"content-type": "image/jpeg"}
+            )
+        raise AssertionError(f"unexpected params: {request.url}")
+
+    with respx.mock:
+        route = respx.get(f"{ND_BASE}/rest/getCoverArt.view").mock(side_effect=handler)
+        r = await client.get("/api/library/art/1?size=64")
+
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/jpeg"
+    assert r.content == b"image-data"
+    assert len(route.calls) == 2
+    assert route.calls[0].request.url.params["size"] == "64"
+    assert route.calls[1].request.url.params["size"] == "400"
+
+
+@pytest.mark.asyncio
+async def test_get_cover_art_non_image_response_is_not_cacheable(client):
+    with respx.mock:
+        respx.get(f"{ND_BASE}/rest/getCoverArt.view").mock(
+            return_value=httpx.Response(200, json=nd_fail(0, "cache miss"))
+        )
+        r = await client.get("/api/library/art/1?size=400")
+
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "no-store"
 
 
 # ---------------------------------------------------------------------------
