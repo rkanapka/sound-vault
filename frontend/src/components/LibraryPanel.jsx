@@ -36,6 +36,7 @@ function normalizeArtistName(name) {
 
 const favoritesListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 4.25rem'
 const playlistListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 2.5rem'
+const compactAlbumGridClass = 'grid grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))] gap-2 p-2'
 
 export default function LibraryPanel({
   library,
@@ -734,30 +735,30 @@ export default function LibraryPanel({
                     ))}
                   </ul>
                 ) : (
-                  <div className="grid grid-cols-4 gap-1 p-2">
+                  <div className={compactAlbumGridClass}>
                     {filteredAllAlbums.map((album) => (
                       <button
                         key={album.id}
                         onClick={() => goToAlbum(album, { origin: 'albums' })}
-                        className="flex flex-col gap-0 text-left group rounded-md p-1.5 hover:bg-slate-800/70 transition-colors"
+                        className="flex flex-col gap-0 text-left group rounded-md p-1 hover:bg-slate-800/70 transition-colors"
                       >
-                        <div className="aspect-square w-full rounded-sm bg-slate-800 overflow-hidden mb-1.5">
+                        <div className="aspect-square w-full rounded-md bg-slate-800 overflow-hidden mb-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
                           {album.coverArt ? (
                             <img
-                              src={artUrl(album.coverArt, 100)}
+                              src={artUrl(album.coverArt, 160)}
                               alt=""
                               className="w-full h-full object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Disc size={10} className="text-slate-600" />
+                              <Disc size={14} className="text-slate-600" />
                             </div>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
+                        <p className="text-[11px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
                           {album.name}
                         </p>
-                        <p className="text-[9px] text-slate-500 truncate w-full leading-snug">
+                        <p className="text-[10px] text-slate-500 truncate w-full leading-snug">
                           {[album.artist, album.year].filter(Boolean).join(' · ')}
                         </p>
                       </button>
@@ -863,31 +864,31 @@ export default function LibraryPanel({
                     ))}
                   </ul>
                 ) : (
-                  <div className="grid grid-cols-4 gap-1 p-2">
+                  <div className={compactAlbumGridClass}>
                     {sortedAlbums.map((album) => (
                       <button
                         key={album.id}
                         onClick={() => goToAlbum(album)}
-                        className="flex flex-col gap-0 text-left group rounded-md p-1.5 hover:bg-slate-800/70 transition-colors"
+                        className="flex flex-col gap-0 text-left group rounded-md p-1 hover:bg-slate-800/70 transition-colors"
                       >
-                        <div className="aspect-square w-full rounded-sm bg-slate-800 overflow-hidden mb-1.5">
+                        <div className="aspect-square w-full rounded-md bg-slate-800 overflow-hidden mb-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
                           {album.coverArt ? (
                             <img
-                              src={artUrl(album.coverArt, 100)}
+                              src={artUrl(album.coverArt, 160)}
                               alt=""
                               className="w-full h-full object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Disc size={10} className="text-slate-600" />
+                              <Disc size={14} className="text-slate-600" />
                             </div>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
+                        <p className="text-[11px] text-slate-300 truncate w-full leading-snug group-hover:text-white transition-colors">
                           {album.name}
                         </p>
                         {(album.year || album.songCount) && (
-                          <p className="text-[9px] text-slate-500 truncate w-full leading-snug">
+                          <p className="text-[10px] text-slate-500 truncate w-full leading-snug">
                             {[album.year, album.songCount && `${album.songCount}tr`]
                               .filter(Boolean)
                               .join(' · ')}
@@ -905,16 +906,31 @@ export default function LibraryPanel({
               <>
                 <div className="px-4 py-3 border-b border-slate-800/40 bg-slate-900/30">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="text-sm font-medium text-slate-100 truncate">
-                        {currentAlbum?.name || 'Album'}
-                      </h2>
-                      {currentAlbum?.artist && (
-                        <p className="mt-0.5 text-sm text-slate-400 truncate">
-                          {currentAlbum.artist}
-                        </p>
-                      )}
-                      {albumMeta && <p className="mt-1 text-xs text-slate-500">{albumMeta}</p>}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-md bg-slate-800 overflow-hidden border border-slate-700/50 flex-none shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+                        {currentAlbum?.coverArt ? (
+                          <img
+                            src={artUrl(currentAlbum.coverArt, 240)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Disc size={22} className="text-slate-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <h2 className="text-sm font-medium text-slate-100 truncate">
+                          {currentAlbum?.name || 'Album'}
+                        </h2>
+                        {currentAlbum?.artist && (
+                          <p className="mt-0.5 text-sm text-slate-400 truncate">
+                            {currentAlbum.artist}
+                          </p>
+                        )}
+                        {albumMeta && <p className="mt-1 text-xs text-slate-500">{albumMeta}</p>}
+                      </div>
                     </div>
                     {(isCompilationAlbum || trackArtists.length > 1) && (
                       <div className="flex flex-wrap justify-end gap-1 flex-none">
