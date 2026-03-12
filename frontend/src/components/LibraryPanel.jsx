@@ -974,6 +974,19 @@ export default function LibraryPanel({
                                 </span>
                               )}
                             </span>
+                            <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
+                              {song.artistId ? (
+                                <img
+                                  src={artUrl(song.artistId, 64)}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Mic2 size={12} className="text-slate-600" />
+                                </div>
+                              )}
+                            </div>
                             <div className="flex-1 min-w-0">
                               <p
                                 className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}
@@ -1239,6 +1252,19 @@ export default function LibraryPanel({
                                 </span>
                               )}
                             </span>
+                            <div className="w-8 h-8 rounded bg-slate-800 flex-none overflow-hidden border border-slate-700/50">
+                              {track.artistId ? (
+                                <img
+                                  src={artUrl(track.artistId, 64)}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Mic2 size={12} className="text-slate-600" />
+                                </div>
+                              )}
+                            </div>
                             <div className="flex-1 min-w-0">
                               <p
                                 className={`text-sm truncate ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}

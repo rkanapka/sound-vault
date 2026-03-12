@@ -47,8 +47,10 @@ async def stream_song(song_id: str, request: Request):
 
 @router.get("/art/{item_id}")
 async def get_cover_art(item_id: str, request: Request, size: int = 200):
-    return await _proxy_nd(
+    resp = await _proxy_nd(
         f"{settings.navidrome_url}/rest/getCoverArt.view",
         nd_params(id=item_id, size=size),
         request,
     )
+    resp.headers["cache-control"] = "public, max-age=86400, immutable"
+    return resp

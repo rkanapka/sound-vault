@@ -76,9 +76,9 @@ export default function Player({ player, onShowDetails }) {
                 : 'rounded-md border-slate-700/50 group-hover:border-slate-600'
             }`}
           >
-            {song.coverArt ? (
+            {song.artistId || song.coverArt ? (
               <img
-                src={artUrl(song.coverArt, 88)}
+                src={artUrl(song.artistId ?? song.coverArt, 88)}
                 alt=""
                 className="w-full h-full object-cover sv-album-spin"
                 style={{ animationPlayState: playing ? 'running' : 'paused' }}
