@@ -3,6 +3,7 @@
 
 # Runtime data (databases, cache, slskd app data)
 data/
+music/
 
 # Frontend
 frontend/node_modules/
