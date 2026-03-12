@@ -12,6 +12,20 @@ import BrandMark from './components/BrandMark'
 import { Globe, Heart, Home, Library, ListMusic } from 'lucide-react'
 
 const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
+const spacebarTrackButtonSelector = '[data-spacebar-play-toggle]'
+const spacebarIgnoreSelector =
+  'input, textarea, select, summary, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="searchbox"], [role="slider"]'
+const spacebarInteractiveSelector = 'button, a[href], [role="button"], [role="link"]'
+
+function shouldHandleSpacebarShortcut(target) {
+  if (!(target instanceof Element)) return true
+  if (target.closest(spacebarIgnoreSelector)) return false
+
+  const interactiveTarget = target.closest(spacebarInteractiveSelector)
+  if (interactiveTarget && !interactiveTarget.matches(spacebarTrackButtonSelector)) return false
+
+  return true
+}
 
 export default function App() {
   const player = usePlayer()
@@ -19,6 +33,7 @@ export default function App() {
   const library = useLibrary()
   const playlists = usePlaylists()
   const favorites = useFavorites()
+  const { song: currentSong, togglePlay } = player
   const [infoSong, setInfoSong] = useState(null)
   const [activeRoute, setActiveRoute] = useState('home') // 'home' | 'library' | 'playlists' | 'favorites' | 'soulseek'
 
@@ -47,6 +62,22 @@ export default function App() {
     if (activeRoute === 'library' && libraryView === 'home') loadArtists()
     if (activeRoute === 'playlists' && playlistList.length === 0) loadPlaylists()
   }, [activeRoute, libraryView, playlistList.length, loadHome, loadArtists, loadPlaylists])
+
+  useEffect(() => {
+    if (!currentSong) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.code !== 'Space') return
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if (!shouldHandleSpacebarShortcut(event.target)) return
+
+      event.preventDefault()
+      togglePlay()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentSong, togglePlay])
 
   if (isEmbed) {
     return (

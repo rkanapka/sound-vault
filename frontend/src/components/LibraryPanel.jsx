@@ -650,6 +650,7 @@ export default function LibraryPanel({
                       >
                         <button
                           onClick={() => onPlay(track, tracks)}
+                          data-spacebar-play-toggle
                           className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                         >
                           <span className="w-5 flex items-center justify-center flex-none">
@@ -806,6 +807,7 @@ export default function LibraryPanel({
                           >
                             <button
                               onClick={() => onPlay(song, searchResults.songs)}
+                              data-spacebar-play-toggle
                               className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2 text-left min-w-0"
                             >
                               {isActive && player.playing ? (
@@ -953,6 +955,7 @@ export default function LibraryPanel({
                         >
                           <button
                             onClick={() => onPlay(song, favorites.songs)}
+                            data-spacebar-play-toggle
                             className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                           >
                             <span className="w-5 flex items-center justify-center flex-none">
@@ -1217,6 +1220,7 @@ export default function LibraryPanel({
                         >
                           <button
                             onClick={() => onPlay(track, playlists.tracks)}
+                            data-spacebar-play-toggle
                             className="flex-1 flex items-center gap-3 pl-4 pr-2 py-2.5 text-left min-w-0"
                           >
                             <span className="w-5 flex items-center justify-center flex-none">
