@@ -29,6 +29,7 @@ export default function NowPlaying({ song, onClose }) {
 
   // Merge: extra has the same fields but may include bpm, comment, etc.
   const s = extra ? { ...song, ...extra } : song
+  const artId = s.artistId ?? s.coverArt ?? null
 
   const meta = [
     ['Album', s.album],
@@ -63,8 +64,8 @@ export default function NowPlaying({ song, onClose }) {
 
         {/* Album art */}
         <div className="aspect-square w-full bg-slate-800">
-          {s.coverArt ? (
-            <img src={artUrl(s.coverArt, 400)} alt="" className="w-full h-full object-cover" />
+          {artId ? (
+            <img src={artUrl(artId, 400)} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-700">
               <Music size={72} strokeWidth={1} />
