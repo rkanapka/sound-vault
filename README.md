@@ -45,7 +45,6 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 ## Requirements
 
 - Docker + Docker Compose
-- A Soulseek account
 
 ## Setup
 
@@ -63,10 +62,12 @@ Edit `.env`:
 | Variable | Description |
 |---|---|
 | `MUSIC_DIR` | Path to your music folder on the host. Defaults to `./music` next to the compose file |
-| `SLSKD_USERNAME` | Your Soulseek username |
-| `SLSKD_PASSWORD` | Your Soulseek password |
+| `SLSKD_USERNAME` | Username passed to the bundled slskd service. For the default local setup, this can be any non-empty value |
+| `SLSKD_PASSWORD` | Password passed to the bundled slskd service. For the default local setup, this can be any non-empty value |
 | `NAVIDROME_USER` | Navidrome admin username (set after first login) |
 | `NAVIDROME_PASS` | Navidrome admin password (set after first login) |
+
+For the included Docker Compose stack, `SLSKD_USERNAME` and `SLSKD_PASSWORD` do not need to match a real Soulseek account. Random placeholder values work fine as long as they are set.
 
 **2. First run - set up Navidrome**
 
@@ -165,47 +166,7 @@ SOUNDVAULT_PORT=7070
 
 ## Development
 
-**Backend** (Python 3.14, FastAPI)
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
-NAVIDROME_USER=admin NAVIDROME_PASS=admin PYTHONPATH=backend uvicorn main:app --reload
-```
-
-Lint and format:
-
-```bash
-ruff check backend/        # lint
-ruff check --fix backend/  # lint with auto-fix
-ruff format backend/       # format
-```
-
-Test:
-
-```bash
-pytest
-```
-
-**Frontend** (Node 20, npm 11, React + Vite)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Lint and format:
-
-```bash
-cd frontend
-npm run lint          # ESLint check
-npm run lint:fix      # ESLint with auto-fix
-npm run format        # Prettier format
-npm run format:check  # Prettier check (CI)
-```
-
-The Vite dev server proxies `/api/*` to the backend.
+Local backend/frontend setup, linting, formatting, and test commands live in [docs/development.md](docs/development.md).
 
 ## Stack
 
