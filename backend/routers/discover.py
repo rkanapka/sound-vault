@@ -3,10 +3,10 @@ import copy
 import html
 import re
 import time
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from config import settings
 from dependencies import get_http_client, nd_params, nd_unwrap
@@ -16,8 +16,9 @@ router = APIRouter(prefix="/api/discover")
 HttpClient = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 
 LASTFM_BASE_URL = "https://ws.audioscrobbler.com/2.0/"
-CACHE_TTL_SECONDS = 60 * 60 * 12
-CACHE_VERSION = "v4"
+TAG_CACHE_TTL_SECONDS = 60 * 60 * 12
+GLOBAL_CACHE_TTL_SECONDS = 60 * 60
+CACHE_VERSION = "v5"
 IMAGE_SIZES = ("extralarge", "large", "medium", "small")
 SUMMARY_LINK_RE = re.compile(r"<a[^>]*>\s*Read more on Last\.fm\s*</a>", re.IGNORECASE)
 HTML_TAG_RE = re.compile(r"<[^>]+>")
@@ -39,8 +40,10 @@ def _cache_get(key: str) -> dict[str, Any] | None:
     return copy.deepcopy(value)
 
 
-def _cache_put(key: str, value: dict[str, Any]) -> dict[str, Any]:
-    _CACHE[key] = (time.monotonic() + CACHE_TTL_SECONDS, copy.deepcopy(value))
+def _cache_put(
+    key: str, value: dict[str, Any], ttl_seconds: int = TAG_CACHE_TTL_SECONDS
+) -> dict[str, Any]:
+    _CACHE[key] = (time.monotonic() + ttl_seconds, copy.deepcopy(value))
     return copy.deepcopy(value)
 
 
@@ -59,7 +62,7 @@ def _normalize_text(value: Any) -> str:
 def _parse_count(value: Any) -> int | None:
     try:
         return int(str(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -139,7 +142,7 @@ def _normalize_tag_item(item: dict[str, Any]) -> dict[str, Any] | None:
 
     return {
         "name": name,
-        "count": _parse_count(item.get("count")),
+        "count": _parse_count(item.get("count") or item.get("taggings")),
         "reach": _parse_count(item.get("reach")),
     }
 
@@ -191,18 +194,19 @@ def _dedupe_cards(cards: list[dict[str, Any]], limit: int = 12) -> list[dict[str
     return deduped
 
 
-def _normalize_artist_cards(data: dict[str, Any] | None) -> list[dict[str, Any]]:
-    artists = _as_list((data or {}).get("topartists", {}).get("artist"))
+def _normalize_artist_cards(data: dict[str, Any] | None, limit: int = 12) -> list[dict[str, Any]]:
+    root = (data or {}).get("topartists") or (data or {}).get("artists") or {}
+    artists = _as_list(root.get("artist"))
     cards = []
     for artist in artists:
         name = str(artist.get("name") or "").strip()
         if not name:
             continue
         cards.append(_make_card("artist", name, None, artist))
-    return _dedupe_cards(cards)
+    return _dedupe_cards(cards, limit=limit)
 
 
-def _normalize_album_cards(data: dict[str, Any] | None) -> list[dict[str, Any]]:
+def _normalize_album_cards(data: dict[str, Any] | None, limit: int = 12) -> list[dict[str, Any]]:
     root = (data or {}).get("albums") or (data or {}).get("topalbums") or {}
     albums = _as_list(root.get("album"))
     cards = []
@@ -212,10 +216,10 @@ def _normalize_album_cards(data: dict[str, Any] | None) -> list[dict[str, Any]]:
         if not title or not artist_name:
             continue
         cards.append(_make_card("album", title, artist_name, album))
-    return _dedupe_cards(cards)
+    return _dedupe_cards(cards, limit=limit)
 
 
-def _normalize_track_cards(data: dict[str, Any] | None) -> list[dict[str, Any]]:
+def _normalize_track_cards(data: dict[str, Any] | None, limit: int = 12) -> list[dict[str, Any]]:
     root = (data or {}).get("tracks") or (data or {}).get("toptracks") or {}
     tracks = _as_list(root.get("track"))
     cards = []
@@ -225,11 +229,26 @@ def _normalize_track_cards(data: dict[str, Any] | None) -> list[dict[str, Any]]:
         if not title or not artist_name:
             continue
         cards.append(_make_card("track", title, artist_name, track))
-    return _dedupe_cards(cards)
+    return _dedupe_cards(cards, limit=limit)
 
 
 def _disabled_bootstrap_payload() -> dict[str, Any]:
-    return {"enabled": False, "topTags": []}
+    return {"enabled": False, "topTags": [], "trendingArtists": [], "trendingTracks": []}
+
+
+def _disabled_chart_payload(kind: str, page: int) -> dict[str, Any]:
+    return {"enabled": False, "kind": kind, "page": page, "totalPages": 0, "items": []}
+
+
+def _disabled_tag_chart_payload(tag_name: str, kind: str, page: int) -> dict[str, Any]:
+    return {
+        "enabled": False,
+        "tag": tag_name,
+        "kind": kind,
+        "page": page,
+        "totalPages": 0,
+        "items": [],
+    }
 
 
 def _disabled_tag_payload(tag_name: str) -> dict[str, Any]:
@@ -241,6 +260,10 @@ def _disabled_tag_payload(tag_name: str) -> dict[str, Any]:
         "topAlbums": [],
         "topTracks": [],
     }
+
+
+def _discover_page_limit(kind: Literal["artists", "albums", "tracks"]) -> int:
+    return 20
 
 
 async def _lastfm_request(
@@ -265,7 +288,7 @@ async def _lastfm_request(
         if not isinstance(payload, dict) or payload.get("error"):
             return None
         return payload
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPError, ValueError:
         return None
 
 
@@ -449,6 +472,16 @@ async def _backfill_missing_images(
     return list(enriched)
 
 
+async def _prepare_cards(
+    client: httpx.AsyncClient, cards: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if not cards:
+        return []
+
+    enriched = await _backfill_missing_images(client, cards)
+    return await _resolve_cards(client, enriched)
+
+
 def _normalize_tag_detail(data: dict[str, Any] | None, raw_tag: str) -> dict[str, Any]:
     tag = (data or {}).get("tag", {})
     wiki = tag.get("wiki") if isinstance(tag.get("wiki"), dict) else {}
@@ -473,16 +506,45 @@ def _normalize_similar_tags(data: dict[str, Any] | None) -> list[dict[str, Any]]
     return normalized
 
 
-def _normalize_top_tags(data: dict[str, Any] | None) -> list[dict[str, Any]]:
-    tags = _as_list((data or {}).get("toptags", {}).get("tag"))
+def _normalize_top_tags(data: dict[str, Any] | None, limit: int = 24) -> list[dict[str, Any]]:
+    root = (data or {}).get("toptags") or (data or {}).get("tags") or {}
+    tags = _as_list(root.get("tag"))
     normalized = []
     for tag in tags:
         item = _normalize_tag_item(tag)
         if item:
             normalized.append(item)
-        if len(normalized) >= 24:
+        if len(normalized) >= limit:
             break
     return normalized
+
+
+def _extract_page_data(root: dict[str, Any], requested_page: int) -> tuple[int, int]:
+    attrs = root.get("@attr") if isinstance(root.get("@attr"), dict) else {}
+
+    page = _parse_count(attrs.get("page") or root.get("page")) or requested_page
+    total_pages = _parse_count(attrs.get("totalPages") or root.get("totalPages"))
+    if total_pages is None:
+        total_pages = 0 if not root else 1
+
+    return page, total_pages
+
+
+def _extract_chart_page(
+    data: dict[str, Any] | None, kind: Literal["artists", "tracks"], requested_page: int
+) -> tuple[int, int]:
+    root = (data or {}).get(kind) or {}
+    return _extract_page_data(root, requested_page)
+
+
+def _extract_tag_chart_page(
+    data: dict[str, Any] | None,
+    kind: Literal["artists", "albums", "tracks"],
+    requested_page: int,
+) -> tuple[int, int]:
+    root_key = "topartists" if kind == "artists" else "albums" if kind == "albums" else "tracks"
+    root = (data or {}).get(root_key) or {}
+    return _extract_page_data(root, requested_page)
 
 
 @router.get("/bootstrap")
@@ -494,11 +556,114 @@ async def get_discover_bootstrap(client: HttpClient):
     if cached:
         return cached
 
+    tags_data, artists_data, tracks_data = await asyncio.gather(
+        _lastfm_request(client, "chart.getTopTags", page=1, limit=24),
+        _lastfm_request(client, "chart.getTopArtists", page=1, limit=10),
+        _lastfm_request(client, "chart.getTopTracks", page=1, limit=10),
+    )
+
+    trending_artists, trending_tracks = await asyncio.gather(
+        _prepare_cards(client, _normalize_artist_cards(artists_data, limit=10)),
+        _prepare_cards(client, _normalize_track_cards(tracks_data, limit=10)),
+    )
+
     payload = {
         "enabled": True,
-        "topTags": _normalize_top_tags(await _lastfm_request(client, "tag.getTopTags")),
+        "topTags": _normalize_top_tags(tags_data, limit=24),
+        "trendingArtists": trending_artists,
+        "trendingTracks": trending_tracks,
     }
-    return _cache_put(f"{CACHE_VERSION}:bootstrap", payload)
+    return _cache_put(f"{CACHE_VERSION}:bootstrap", payload, ttl_seconds=GLOBAL_CACHE_TTL_SECONDS)
+
+
+@router.get("/charts")
+async def get_discover_charts(
+    client: HttpClient,
+    kind: Annotated[Literal["artists", "tracks"], Query()] = "artists",
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int | None, Query(ge=1, le=24)] = None,
+):
+    resolved_limit = limit or _discover_page_limit(kind)
+
+    if not settings.lastfm_api_key:
+        return _disabled_chart_payload(kind, page)
+
+    cache_key = f"{CACHE_VERSION}:charts:{kind}:{page}:{resolved_limit}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    method = "chart.getTopArtists" if kind == "artists" else "chart.getTopTracks"
+    data = await _lastfm_request(client, method, page=page, limit=resolved_limit)
+    cards = (
+        _normalize_artist_cards(data, limit=resolved_limit)
+        if kind == "artists"
+        else _normalize_track_cards(data, limit=resolved_limit)
+    )
+    page_number, total_pages = _extract_chart_page(data, kind, page)
+    items = await _prepare_cards(client, cards)
+
+    payload = {
+        "enabled": True,
+        "kind": kind,
+        "page": page_number,
+        "totalPages": total_pages,
+        "items": items,
+    }
+    return _cache_put(cache_key, payload, ttl_seconds=GLOBAL_CACHE_TTL_SECONDS)
+
+
+@router.get("/tag/{tag:path}/charts")
+async def get_discover_tag_charts(
+    tag: str,
+    client: HttpClient,
+    kind: Annotated[Literal["artists", "albums", "tracks"], Query()] = "artists",
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int | None, Query(ge=1, le=24)] = None,
+):
+    tag_name = tag.strip()
+    resolved_limit = limit or _discover_page_limit(kind)
+
+    if not tag_name:
+        return _disabled_tag_chart_payload("", kind, page)
+
+    if not settings.lastfm_api_key:
+        return _disabled_tag_chart_payload(tag_name, kind, page)
+
+    cache_key = (
+        f"{CACHE_VERSION}:tagcharts:{_normalize_text(tag_name)}:{kind}:{page}:{resolved_limit}"
+    )
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    method = (
+        "tag.getTopArtists"
+        if kind == "artists"
+        else "tag.getTopAlbums"
+        if kind == "albums"
+        else "tag.getTopTracks"
+    )
+    data = await _lastfm_request(client, method, tag=tag_name, page=page, limit=resolved_limit)
+    cards = (
+        _normalize_artist_cards(data, limit=resolved_limit)
+        if kind == "artists"
+        else _normalize_album_cards(data, limit=resolved_limit)
+        if kind == "albums"
+        else _normalize_track_cards(data, limit=resolved_limit)
+    )
+    page_number, total_pages = _extract_tag_chart_page(data, kind, page)
+    items = await _prepare_cards(client, cards)
+
+    payload = {
+        "enabled": True,
+        "tag": tag_name,
+        "kind": kind,
+        "page": page_number,
+        "totalPages": total_pages,
+        "items": items,
+    }
+    return _cache_put(cache_key, payload, ttl_seconds=TAG_CACHE_TTL_SECONDS)
 
 
 @router.get("/tag/{tag:path}")
@@ -523,20 +688,10 @@ async def get_discover_tag(tag: str, client: HttpClient):
         _lastfm_request(client, "tag.getTopTracks", tag=tag_name),
     )
 
-    top_artists = _normalize_artist_cards(artists_data)
-    top_albums = _normalize_album_cards(albums_data)
-    top_tracks = _normalize_track_cards(tracks_data)
-
-    top_artists, top_albums, top_tracks = await asyncio.gather(
-        _backfill_missing_images(client, top_artists),
-        _backfill_missing_images(client, top_albums),
-        _backfill_missing_images(client, top_tracks),
-    )
-
     resolved_artists, resolved_albums, resolved_tracks = await asyncio.gather(
-        _resolve_cards(client, top_artists),
-        _resolve_cards(client, top_albums),
-        _resolve_cards(client, top_tracks),
+        _prepare_cards(client, _normalize_artist_cards(artists_data)),
+        _prepare_cards(client, _normalize_album_cards(albums_data)),
+        _prepare_cards(client, _normalize_track_cards(tracks_data)),
     )
 
     payload = {
@@ -547,4 +702,4 @@ async def get_discover_tag(tag: str, client: HttpClient):
         "topAlbums": resolved_albums,
         "topTracks": resolved_tracks,
     }
-    return _cache_put(cache_key, payload)
+    return _cache_put(cache_key, payload, ttl_seconds=TAG_CACHE_TTL_SECONDS)

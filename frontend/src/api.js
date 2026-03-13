@@ -45,8 +45,18 @@ export const scrobbleSong = (id) =>
 
 // --- Discover ---
 export const getDiscoverBootstrap = () => apiFetch('GET', '/api/discover/bootstrap')
+export const getDiscoverCharts = (kind = 'artists', page = 1, limit = 18) =>
+  apiFetch(
+    'GET',
+    `/api/discover/charts?kind=${encodeURIComponent(kind)}&page=${page}&limit=${limit}`
+  )
 export const getDiscoverTag = (tag) =>
   apiFetch('GET', `/api/discover/tag/${encodeURIComponent(tag)}`)
+export const getDiscoverTagCharts = (tag, kind = 'artists', page = 1, limit = 12) =>
+  apiFetch(
+    'GET',
+    `/api/discover/tag/${encodeURIComponent(tag)}/charts?kind=${encodeURIComponent(kind)}&page=${page}&limit=${limit}`
+  )
 
 // --- Playlists ---
 export const getPlaylists = () => apiFetch('GET', '/api/library/playlists')

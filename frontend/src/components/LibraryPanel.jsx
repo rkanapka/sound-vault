@@ -4,6 +4,7 @@ import {
   RefreshCw,
   Music,
   Disc,
+  Compass,
   ChevronRight,
   ChevronLeft,
   Mic2,
@@ -17,18 +18,27 @@ import {
   Trash2,
   X,
   Heart,
+  Radio,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react'
 import { artUrl, deleteSong } from '../api'
 import Breadcrumb from './Breadcrumb'
 import SongMenu from './SongMenu'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import { getItemArtTarget, getSongArtTarget, getSongListArtTarget } from '../utils/artwork'
+import { getDiscoverCardImage } from '../utils/discover'
 
 function fmtDuration(secs) {
   if (!secs) return ''
   const m = Math.floor(secs / 60)
   const s = secs % 60
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function fmtCount(value) {
+  if (value == null) return null
+  return new Intl.NumberFormat().format(value)
 }
 
 function normalizeArtistName(name) {
@@ -74,6 +84,80 @@ function ExpandableText({ text, expanded, onToggle, previewLength = 320 }) {
   )
 }
 
+function HomeActionTile({ label, title, meta, icon: Icon, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-[1.4rem] border border-slate-800/70 bg-[linear-gradient(180deg,rgba(20,24,31,0.88),rgba(10,13,18,0.96))] px-4 py-4 text-left transition-colors hover:border-slate-600 hover:bg-slate-900"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            {label}
+          </p>
+          <p className="mt-2 text-sm font-medium text-slate-100">{title}</p>
+          {meta && <p className="mt-1.5 text-xs text-slate-500">{meta}</p>}
+        </div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-700/70 bg-slate-900/70 text-slate-300">
+          <Icon size={15} />
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function discoverTagMetric(tag) {
+  return tag?.reach ?? tag?.count ?? null
+}
+
+function DiscoverTagPill({ tag, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(tag.name)}
+      className="rounded-full border border-slate-800/70 bg-slate-900/40 px-3 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-emerald-400/30 hover:text-emerald-100"
+    >
+      <span>{tag.name}</span>
+      {discoverTagMetric(tag) != null && (
+        <span className="ml-1.5 text-[10px] text-slate-500">
+          {fmtCount(discoverTagMetric(tag))}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function CompactDiscoverItem({ card, onClick, rank }) {
+  const imageSrc = getDiscoverCardImage(card, 96)
+  const subtitle = card.artistName || (card.inLibrary ? 'In your library' : 'Send to Soulseek')
+  const actionLabel = card.inLibrary ? (card.kind === 'track' ? 'Play' : 'Open') : 'Soulseek'
+
+  return (
+    <button
+      onClick={() => onClick(card)}
+      className="group grid w-full grid-cols-[2rem_2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-slate-800/70 bg-slate-950/35 px-2.5 py-2 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/60"
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800/70 bg-slate-900/70 text-[11px] font-semibold text-slate-400">
+        {String(rank).padStart(2, '0')}
+      </div>
+      <div className="h-11 w-11 flex-none overflow-hidden rounded-lg border border-slate-800/70 bg-slate-900/80">
+        {imageSrc ? (
+          <img src={imageSrc} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,#1f2937_0%,#0f172a_55%,#020617_100%)]" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium leading-snug text-slate-100 truncate">{card.title}</p>
+        <p className="mt-0.5 text-xs text-slate-500 truncate">{subtitle}</p>
+      </div>
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition-colors group-hover:text-slate-300">
+        <span>{actionLabel}</span>
+        <ChevronRight size={12} />
+      </span>
+    </button>
+  )
+}
+
 const favoritesListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 4.25rem'
 const playlistListGridTemplate = '1.25rem 2rem minmax(0, 1.7fr) minmax(8rem, 1fr) auto 2.5rem'
 const compactAlbumGridClass = 'grid grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))] gap-2 p-2'
@@ -85,8 +169,15 @@ export default function LibraryPanel({
   onShowInfo,
   playlists,
   favorites,
+  discover,
   section,
   onNavigate,
+  onOpenDiscoverGlobal,
+  onOpenDiscoverTag,
+  onOpenDiscoverArtist,
+  onOpenDiscoverAlbum,
+  onPlayDiscoverTrack,
+  onSearchSoulseek,
 }) {
   const {
     view,
@@ -360,6 +451,31 @@ export default function LibraryPanel({
     goToAlbum(album, { origin: 'albums' })
   }
 
+  const homeDiscoverEnabled = Boolean(discover?.enabled)
+  const homeTrendingArtists = discover?.trendingArtists || []
+  const homeTrendingTracks = discover?.trendingTracks || []
+  const homeTopTags = discover?.topTags || []
+
+  const handleHomeDiscoverCard = async (card) => {
+    if (!card) return
+
+    if (!card.inLibrary) {
+      await onSearchSoulseek?.(card.soulseekQuery)
+      return
+    }
+
+    if (card.kind === 'artist') {
+      await onOpenDiscoverArtist?.(card)
+      return
+    }
+    if (card.kind === 'album') {
+      await onOpenDiscoverAlbum?.(card)
+      return
+    }
+
+    await onPlayDiscoverTrack?.(card)
+  }
+
   const openAlbumFromTrack = (track) => {
     if (!track?.albumId) return
     onNavigate('library')
@@ -521,39 +637,216 @@ export default function LibraryPanel({
 
             {/* Home view */}
             {!loading && !error && view === 'home' && (
-              <div className="py-3 px-4 space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="px-4 py-4 space-y-6">
+                <section className="grid gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(14rem,0.95fr)]">
                   <button
-                    onClick={() => {
-                      onNavigate('library')
-                      openLibrary()
-                    }}
-                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
+                    onClick={() => onOpenDiscoverGlobal?.('artists')}
+                    className="overflow-hidden rounded-[1.8rem] border border-slate-800/70 bg-[linear-gradient(135deg,rgba(24,30,24,0.94),rgba(24,18,15,0.78)_45%,rgba(8,11,16,0.98))] p-5 text-left shadow-[0_24px_60px_rgba(0,0,0,0.3)] transition-colors hover:border-emerald-400/30"
                   >
-                    <p className="text-[10px] uppercase tracking-widest text-slate-500">Library</p>
-                    <p className="text-sm text-slate-200 mt-1">Open Library</p>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="max-w-2xl">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
+                          <Compass size={12} />
+                          Discover
+                        </div>
+                        <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-50">
+                          Global Tops
+                        </h2>
+                        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">
+                          Browse Last.fm&apos;s top artists, tracks, and tags, then open local
+                          matches instantly or jump to Soulseek for anything missing.
+                        </p>
+                      </div>
+                      <div className="flex min-w-[12rem] flex-col gap-2 rounded-[1.4rem] border border-white/8 bg-black/20 p-3 text-xs text-slate-400">
+                        <span className="inline-flex items-center gap-2 text-emerald-100">
+                          <Radio size={13} />
+                          Anonymous charts
+                        </span>
+                        <span>
+                          {homeDiscoverEnabled
+                            ? `${homeTrendingArtists.length} artists and ${homeTrendingTracks.length} tracks ready from the global feed.`
+                            : 'Add LASTFM_API_KEY to enable discovery signals.'}
+                        </span>
+                        <span className="inline-flex items-center gap-2 text-slate-300">
+                          Open Discover
+                          <ArrowRight size={12} />
+                        </span>
+                      </div>
+                    </div>
                   </button>
-                  <button
-                    onClick={() => {
-                      playlists.backToList()
-                      playlists.loadPlaylists()
-                      onNavigate('playlists')
-                    }}
-                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
-                  >
-                    <p className="text-[10px] uppercase tracking-widest text-slate-500">
-                      Playlists
-                    </p>
-                    <p className="text-sm text-slate-200 mt-1">Open Collection</p>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('soulseek')}
-                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2.5 text-left hover:border-emerald-500/40 hover:bg-slate-800/70 transition-colors"
-                  >
-                    <p className="text-[10px] uppercase tracking-widest text-slate-500">Discover</p>
-                    <p className="text-sm text-slate-200 mt-1">Search Soulseek</p>
-                  </button>
-                </div>
+
+                  <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                    <HomeActionTile
+                      label="Library"
+                      title="Browse your collection"
+                      meta="Artists, albums, and search"
+                      icon={Music}
+                      onClick={() => {
+                        onNavigate('library')
+                        openLibrary()
+                      }}
+                    />
+                    <HomeActionTile
+                      label="Playlists"
+                      title="Open your playlists"
+                      meta={`${playlists.playlists.length} saved collections`}
+                      icon={ListMusic}
+                      onClick={() => {
+                        playlists.backToList()
+                        playlists.loadPlaylists()
+                        onNavigate('playlists')
+                      }}
+                    />
+                    <HomeActionTile
+                      label="Favorites"
+                      title="Jump into liked songs"
+                      meta={`${favorites?.songs.length ?? 0} saved tracks`}
+                      icon={Heart}
+                      onClick={() => {
+                        favorites.load()
+                        onNavigate('favorites')
+                      }}
+                    />
+                  </div>
+                </section>
+
+                {homeDiscoverEnabled ? (
+                  <section className="overflow-hidden rounded-[1.6rem] border border-slate-800/70 bg-[linear-gradient(165deg,rgba(15,23,42,0.78),rgba(9,12,16,0.96))] shadow-[0_22px_54px_rgba(0,0,0,0.24)]">
+                    <div className="border-b border-slate-800/70 px-4 py-4">
+                      <div className="flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-200/80">
+                            Trending Now
+                          </p>
+                          <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-100">
+                            Fast discovery, lighter scan
+                          </h3>
+                        </div>
+                        <p className="max-w-xl text-sm leading-6 text-slate-400">
+                          Open local matches instantly, or jump out to Soulseek when something is
+                          missing from your library.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
+                      <div className="rounded-[1.2rem] border border-white/6 bg-white/[0.03] p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                              Trending Artists
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              Four quick artist picks from the global feed.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => onOpenDiscoverGlobal?.('artists')}
+                            className="text-[11px] font-medium text-emerald-300 transition-colors hover:text-emerald-200"
+                          >
+                            Browse artists
+                          </button>
+                        </div>
+                        {homeTrendingArtists.length > 0 ? (
+                          <div className="space-y-2">
+                            {homeTrendingArtists.slice(0, 4).map((card, index) => (
+                              <CompactDiscoverItem
+                                key={`home-artist-${card.title}`}
+                                card={card}
+                                rank={index + 1}
+                                onClick={handleHomeDiscoverCard}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-700">No artist chart data right now.</p>
+                        )}
+                      </div>
+
+                      <div className="rounded-[1.2rem] border border-white/6 bg-white/[0.03] p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                              Trending Tracks
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              Preview what is landing globally before diving deeper.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => onOpenDiscoverGlobal?.('tracks')}
+                            className="text-[11px] font-medium text-emerald-300 transition-colors hover:text-emerald-200"
+                          >
+                            Browse tracks
+                          </button>
+                        </div>
+                        {homeTrendingTracks.length > 0 ? (
+                          <div className="space-y-2">
+                            {homeTrendingTracks.slice(0, 4).map((card, index) => (
+                              <CompactDiscoverItem
+                                key={`home-track-${card.artistName}-${card.title}`}
+                                card={card}
+                                rank={index + 1}
+                                onClick={handleHomeDiscoverCard}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-700">No track chart data right now.</p>
+                        )}
+                      </div>
+
+                      <div className="rounded-[1.2rem] border border-white/6 bg-white/[0.03] p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                              Tags
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                              Jump straight into genre lanes instead of the global stream.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => onOpenDiscoverTag?.(homeTopTags[0]?.name || 'rock')}
+                            className="text-[11px] font-medium text-emerald-300 transition-colors hover:text-emerald-200"
+                          >
+                            Browse tags
+                          </button>
+                        </div>
+                        {homeTopTags.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {homeTopTags.slice(0, 8).map((tag) => (
+                              <DiscoverTagPill
+                                key={`home-tag-${tag.name}`}
+                                tag={tag}
+                                onClick={(tagName) => onOpenDiscoverTag?.(tagName)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-700">No tags available right now.</p>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                ) : (
+                  <div className="rounded-[1.5rem] border border-slate-800/70 bg-[linear-gradient(160deg,rgba(17,24,39,0.8),rgba(9,11,16,0.92))] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-200">
+                        <Sparkles size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-100">
+                          Last.fm discovery is disabled
+                        </p>
+                        <p className="mt-1.5 text-sm text-slate-500">
+                          Add <code className="text-slate-300">LASTFM_API_KEY</code> to unlock
+                          global charts, tags, and recommendation rows on Home.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div className="mb-2">

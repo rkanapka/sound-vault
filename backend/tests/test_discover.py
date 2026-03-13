@@ -30,37 +30,490 @@ async def test_discover_bootstrap_disabled_without_api_key(client, monkeypatch):
     r = await client.get("/api/discover/bootstrap")
 
     assert r.status_code == 200
-    assert r.json() == {"enabled": False, "topTags": []}
+    assert r.json() == {
+        "enabled": False,
+        "topTags": [],
+        "trendingArtists": [],
+        "trendingTracks": [],
+    }
 
 
 @pytest.mark.asyncio
-async def test_discover_bootstrap_returns_top_tags(client, monkeypatch):
+async def test_discover_bootstrap_returns_global_sections(client, monkeypatch):
     monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
 
     def lastfm_handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.params["method"] == "tag.getTopTags"
-        return lastfm_response(
-            {
-                "toptags": {
-                    "tag": [
-                        {"name": "electronic", "count": "1200"},
-                        {"name": "ambient", "count": "800"},
-                    ]
+        method = request.url.params["method"]
+        if method == "chart.getTopTags":
+            return lastfm_response(
+                {
+                    "tags": {
+                        "tag": [
+                            {"name": "electronic", "taggings": "1200", "reach": "800"},
+                            {"name": "ambient", "taggings": "900", "reach": "600"},
+                        ]
+                    }
                 }
-            }
-        )
+            )
+        if method == "chart.getTopArtists":
+            return lastfm_response(
+                {
+                    "artists": {
+                        "artist": [
+                            {
+                                "name": "Radiohead",
+                                "image": [{"size": "large", "#text": "https://img/rh.jpg"}],
+                            },
+                            {"name": "Burial"},
+                        ]
+                    }
+                }
+            )
+        if method == "chart.getTopTracks":
+            return lastfm_response(
+                {
+                    "tracks": {
+                        "track": [
+                            {
+                                "name": "Archangel",
+                                "artist": {"name": "Burial"},
+                                "image": [{"size": "large", "#text": "https://img/ar.jpg"}],
+                            }
+                        ]
+                    }
+                }
+            )
+        if method == "artist.getInfo":
+            return lastfm_response({"artist": {"name": request.url.params["artist"]}})
+        if method == "artist.getTopAlbums":
+            return lastfm_response(
+                {
+                    "topalbums": {
+                        "album": [
+                            {
+                                "name": "Untrue",
+                                "image": [{"size": "large", "#text": "http://img/burial.jpg"}],
+                            }
+                        ]
+                    }
+                }
+            )
+        raise AssertionError(f"unexpected method: {method}")
 
     with respx.mock:
         respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
         r = await client.get("/api/discover/bootstrap")
 
     assert r.status_code == 200
     assert r.json() == {
         "enabled": True,
         "topTags": [
-            {"name": "electronic", "count": 1200, "reach": None},
-            {"name": "ambient", "count": 800, "reach": None},
+            {"name": "electronic", "count": 1200, "reach": 800},
+            {"name": "ambient", "count": 900, "reach": 600},
         ],
+        "trendingArtists": [
+            {
+                "kind": "artist",
+                "title": "Radiohead",
+                "artistName": None,
+                "imageUrl": "https://img/rh.jpg",
+                "inLibrary": False,
+                "libraryId": None,
+                "artistId": None,
+                "albumId": None,
+                "songId": None,
+                "soulseekQuery": "Radiohead",
+            },
+            {
+                "kind": "artist",
+                "title": "Burial",
+                "artistName": None,
+                "imageUrl": "https://img/burial.jpg",
+                "inLibrary": False,
+                "libraryId": None,
+                "artistId": None,
+                "albumId": None,
+                "songId": None,
+                "soulseekQuery": "Burial",
+            },
+        ],
+        "trendingTracks": [
+            {
+                "kind": "track",
+                "title": "Archangel",
+                "artistName": "Burial",
+                "imageUrl": "https://img/ar.jpg",
+                "inLibrary": False,
+                "libraryId": None,
+                "artistId": None,
+                "albumId": None,
+                "songId": None,
+                "soulseekQuery": "Burial Archangel",
+            }
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_discover_bootstrap_survives_partial_lastfm_failure(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        if method == "chart.getTopTags":
+            return lastfm_response({"tags": {"tag": [{"name": "rock", "reach": "100"}]}})
+        if method == "chart.getTopArtists":
+            return lastfm_response({"artists": {"artist": [{"name": "Blur"}]}})
+        if method == "chart.getTopTracks":
+            return httpx.Response(500, text="upstream failure")
+        if method == "artist.getInfo":
+            return lastfm_response({"artist": {"name": "Blur"}})
+        if method == "artist.getTopAlbums":
+            return lastfm_response({"topalbums": {"album": []}})
+        raise AssertionError(f"unexpected method: {method}")
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
+        r = await client.get("/api/discover/bootstrap")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is True
+    assert body["topTags"] == [{"name": "rock", "count": None, "reach": 100}]
+    assert body["trendingArtists"][0]["title"] == "Blur"
+    assert body["trendingTracks"] == []
+
+
+@pytest.mark.asyncio
+async def test_discover_charts_returns_paginated_items_and_library_matches(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        if method == "chart.getTopTracks":
+            assert request.url.params["page"] == "2"
+            assert request.url.params["limit"] == "2"
+            return lastfm_response(
+                {
+                    "tracks": {
+                        "@attr": {"page": "2", "totalPages": "7"},
+                        "track": [
+                            {
+                                "name": "Everything In Its Right Place",
+                                "artist": {"name": "Radiohead"},
+                                "image": [{"size": "large", "#text": "https://img/eiirp.jpg"}],
+                            },
+                            {
+                                "name": "Windowlicker",
+                                "artist": {"name": "Aphex Twin"},
+                                "image": [{"size": "large", "#text": "https://img/wl.jpg"}],
+                            },
+                        ],
+                    }
+                }
+            )
+        raise AssertionError(f"unexpected method: {method}")
+
+    def navidrome_search_handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["query"]
+        if query == "Radiohead Everything In Its Right Place":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "song": [
+                            {
+                                "id": "song-1",
+                                "title": "Everything In Its Right Place",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "albumId": "album-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        return httpx.Response(200, json=nd_ok(searchResult3={}))
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(side_effect=navidrome_search_handler)
+        r = await client.get("/api/discover/charts?kind=tracks&page=2&limit=2")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is True
+    assert body["kind"] == "tracks"
+    assert body["page"] == 2
+    assert body["totalPages"] == 7
+    assert body["items"][0]["inLibrary"] is True
+    assert body["items"][0]["songId"] == "song-1"
+    assert body["items"][0]["albumId"] == "album-1"
+    assert body["items"][1]["inLibrary"] is False
+
+
+@pytest.mark.asyncio
+async def test_discover_charts_disabled_without_api_key(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", None)
+
+    r = await client.get("/api/discover/charts?kind=artists&page=3")
+
+    assert r.status_code == 200
+    assert r.json() == {
+        "enabled": False,
+        "kind": "artists",
+        "page": 3,
+        "totalPages": 0,
+        "items": [],
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "expected_limit", "payload"),
+    [
+        (
+            "artists",
+            "20",
+            {
+                "artists": {
+                    "@attr": {"page": "1", "totalPages": "9"},
+                    "artist": [{"name": "Burial"}],
+                }
+            },
+        ),
+        (
+            "tracks",
+            "20",
+            {
+                "tracks": {
+                    "@attr": {"page": "1", "totalPages": "9"},
+                    "track": [{"name": "Angel", "artist": {"name": "Massive Attack"}}],
+                }
+            },
+        ),
+    ],
+)
+async def test_discover_charts_default_limit_depends_on_kind(
+    client, monkeypatch, kind, expected_limit, payload
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["limit"] == expected_limit
+        return lastfm_response(payload)
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
+        r = await client.get(f"/api/discover/charts?kind={kind}&page=1")
+
+    assert r.status_code == 200
+    assert r.json()["kind"] == kind
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "method", "payload", "expected_title"),
+    [
+        (
+            "artists",
+            "tag.getTopArtists",
+            {
+                "topartists": {
+                    "@attr": {"page": "2", "totalPages": "7"},
+                    "artist": [
+                        {
+                            "name": "Burial",
+                            "image": [{"size": "large", "#text": "https://img/burial.jpg"}],
+                        },
+                        {
+                            "name": "Massive Attack",
+                            "image": [{"size": "large", "#text": "https://img/ma.jpg"}],
+                        },
+                    ],
+                }
+            },
+            "Burial",
+        ),
+        (
+            "albums",
+            "tag.getTopAlbums",
+            {
+                "albums": {
+                    "@attr": {"page": "2", "totalPages": "7"},
+                    "album": [
+                        {
+                            "name": "Mezzanine",
+                            "artist": {"name": "Massive Attack"},
+                            "image": [{"size": "large", "#text": "https://img/mezz.jpg"}],
+                        },
+                        {
+                            "name": "Dummy",
+                            "artist": {"name": "Portishead"},
+                            "image": [{"size": "large", "#text": "https://img/dummy.jpg"}],
+                        },
+                    ],
+                }
+            },
+            "Mezzanine",
+        ),
+        (
+            "tracks",
+            "tag.getTopTracks",
+            {
+                "tracks": {
+                    "@attr": {"page": "2", "totalPages": "7"},
+                    "track": [
+                        {
+                            "name": "Angel",
+                            "artist": {"name": "Massive Attack"},
+                            "image": [{"size": "large", "#text": "https://img/angel.jpg"}],
+                        },
+                        {
+                            "name": "Roads",
+                            "artist": {"name": "Portishead"},
+                            "image": [{"size": "large", "#text": "https://img/roads.jpg"}],
+                        },
+                    ],
+                }
+            },
+            "Angel",
+        ),
+    ],
+)
+async def test_discover_tag_charts_returns_paginated_items(
+    client, monkeypatch, kind, method, payload, expected_title
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["method"] == method
+        assert request.url.params["tag"] == "trip-hop"
+        assert request.url.params["page"] == "2"
+        assert request.url.params["limit"] == "2"
+        return lastfm_response(payload)
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
+        r = await client.get(f"/api/discover/tag/trip-hop/charts?kind={kind}&page=2&limit=2")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is True
+    assert body["tag"] == "trip-hop"
+    assert body["kind"] == kind
+    assert body["page"] == 2
+    assert body["totalPages"] == 7
+    assert len(body["items"]) == 2
+    assert body["items"][0]["title"] == expected_title
+
+
+@pytest.mark.asyncio
+async def test_discover_tag_charts_survive_partial_lastfm_failure(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["method"] == "tag.getTopTracks"
+        return httpx.Response(500, text="upstream failure")
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        r = await client.get("/api/discover/tag/ambient/charts?kind=tracks&page=2&limit=12")
+
+    assert r.status_code == 200
+    assert r.json() == {
+        "enabled": True,
+        "tag": "ambient",
+        "kind": "tracks",
+        "page": 2,
+        "totalPages": 0,
+        "items": [],
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kind", "expected_limit", "payload"),
+    [
+        (
+            "artists",
+            "20",
+            {
+                "topartists": {
+                    "@attr": {"page": "1", "totalPages": "6"},
+                    "artist": [{"name": "Burial"}],
+                }
+            },
+        ),
+        (
+            "albums",
+            "20",
+            {
+                "albums": {
+                    "@attr": {"page": "1", "totalPages": "6"},
+                    "album": [{"name": "Mezzanine", "artist": {"name": "Massive Attack"}}],
+                }
+            },
+        ),
+        (
+            "tracks",
+            "20",
+            {
+                "tracks": {
+                    "@attr": {"page": "1", "totalPages": "6"},
+                    "track": [{"name": "Angel", "artist": {"name": "Massive Attack"}}],
+                }
+            },
+        ),
+    ],
+)
+async def test_discover_tag_charts_default_limit_depends_on_kind(
+    client, monkeypatch, kind, expected_limit, payload
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["tag"] == "trip-hop"
+        assert request.url.params["limit"] == expected_limit
+        return lastfm_response(payload)
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
+        r = await client.get(f"/api/discover/tag/trip-hop/charts?kind={kind}&page=1")
+
+    assert r.status_code == 200
+    assert r.json()["kind"] == kind
+
+
+@pytest.mark.asyncio
+async def test_discover_tag_charts_disabled_without_api_key(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", None)
+
+    r = await client.get("/api/discover/tag/house/charts?kind=albums&page=3")
+
+    assert r.status_code == 200
+    assert r.json() == {
+        "enabled": False,
+        "tag": "house",
+        "kind": "albums",
+        "page": 3,
+        "totalPages": 0,
+        "items": [],
     }
 
 

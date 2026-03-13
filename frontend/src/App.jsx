@@ -85,9 +85,22 @@ export default function App() {
     player.play([song], 0)
   }
 
+  const openDiscoverGlobal = async (kind = 'artists') => {
+    setActiveRoute('discover')
+    await discover.showGlobal(kind, { page: 1, ensurePage: true })
+  }
+
+  const openDiscoverTag = async (tagName) => {
+    const normalizedTag = tagName?.trim()
+    if (!normalizedTag) return
+    setActiveRoute('discover')
+    await discover.showTag(normalizedTag)
+  }
+
   const sendDiscoverQueryToSoulseek = async (query) => {
     const normalizedQuery = query?.trim()
     if (!normalizedQuery) return
+    discover.setSoulseekSeedQuery(normalizedQuery)
     search.setQuery(normalizedQuery)
     setActiveRoute('soulseek')
     await search.startSearch(normalizedQuery)
@@ -195,8 +208,15 @@ export default function App() {
               onShowInfo={setInfoSong}
               playlists={playlists}
               favorites={favorites}
+              discover={discover}
               section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
               onNavigate={setActiveRoute}
+              onOpenDiscoverGlobal={openDiscoverGlobal}
+              onOpenDiscoverTag={openDiscoverTag}
+              onOpenDiscoverArtist={openDiscoverArtist}
+              onOpenDiscoverAlbum={openDiscoverAlbum}
+              onPlayDiscoverTrack={playDiscoverTrack}
+              onSearchSoulseek={sendDiscoverQueryToSoulseek}
             />
           )}
         </main>
@@ -363,8 +383,15 @@ export default function App() {
             onShowInfo={setInfoSong}
             playlists={playlists}
             favorites={favorites}
+            discover={discover}
             section={activeRoute === 'playlists' ? 'playlists' : activeRoute}
             onNavigate={setActiveRoute}
+            onOpenDiscoverGlobal={openDiscoverGlobal}
+            onOpenDiscoverTag={openDiscoverTag}
+            onOpenDiscoverArtist={openDiscoverArtist}
+            onOpenDiscoverAlbum={openDiscoverAlbum}
+            onPlayDiscoverTrack={playDiscoverTrack}
+            onSearchSoulseek={sendDiscoverQueryToSoulseek}
           />
         )}
       </main>
