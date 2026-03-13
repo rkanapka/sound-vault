@@ -13,9 +13,13 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 
 ## Screenshots
 
-| Home | Library | Soulseek |
-|------|---------|----------|
-| ![Home – recently added albums](docs/screenshots/home.png) | ![Library – album browser](docs/screenshots/library.png) | ![Soulseek search and download](docs/screenshots/soulseek.png) |
+| Home | Discover |
+|------|----------|
+| ![Home – recently added albums](docs/screenshots/home.png) | ![Discover – charts and detail view](docs/screenshots/discover.png) |
+
+| Library | Soulseek |
+|---------|----------|
+| ![Library – album browser](docs/screenshots/library.png) | ![Soulseek search and download](docs/screenshots/soulseek.png) |
 
 ## Architecture
 
