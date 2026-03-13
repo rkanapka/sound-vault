@@ -18,9 +18,9 @@ def lastfm_response(data: dict) -> httpx.Response:
 
 @pytest.fixture(autouse=True)
 def clear_discover_cache():
-    discover_router._CACHE = {}
+    discover_router.clear_cache()
     yield
-    discover_router._CACHE = {}
+    discover_router.clear_cache()
 
 
 @pytest.mark.asyncio
@@ -893,4 +893,481 @@ async def test_discover_tag_disabled_without_api_key(client, monkeypatch):
         "topArtists": [],
         "topAlbums": [],
         "topTracks": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_discover_artist_detail_prefers_library_metadata_and_resolves_sections(
+    client, monkeypatch
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        if method == "artist.getInfo":
+            return lastfm_response(
+                {
+                    "artist": {
+                        "name": "Radiohead",
+                        "tags": {"tag": [{"name": "alternative", "count": "100"}]},
+                        "bio": {"summary": "Last.fm summary"},
+                        "image": [{"size": "large", "#text": "https://img/radiohead-lastfm.jpg"}],
+                    }
+                }
+            )
+        if method == "artist.getTopAlbums":
+            return lastfm_response(
+                {
+                    "topalbums": {
+                        "album": [
+                            {"name": "OK Computer", "artist": {"name": "Radiohead"}},
+                            {"name": "Kid A", "artist": {"name": "Radiohead"}},
+                        ]
+                    }
+                }
+            )
+        if method == "artist.getTopTracks":
+            return lastfm_response(
+                {
+                    "toptracks": {
+                        "track": [{"name": "Paranoid Android", "artist": {"name": "Radiohead"}}]
+                    }
+                }
+            )
+        if method == "artist.getSimilar":
+            return lastfm_response(
+                {
+                    "similarartists": {
+                        "artist": [
+                            {
+                                "name": "Blur",
+                                "image": [{"size": "large", "#text": "https://img/blur.jpg"}],
+                            }
+                        ]
+                    }
+                }
+            )
+        raise AssertionError(f"unexpected method: {method}")
+
+    def navidrome_search_handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["query"]
+        if query == "Radiohead OK Computer":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "album": [
+                            {
+                                "id": "album-1",
+                                "name": "OK Computer",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        if query == "Radiohead Kid A":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "album": [
+                            {
+                                "id": "album-2",
+                                "name": "Kid A",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        if query == "Radiohead Paranoid Android":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "song": [
+                            {
+                                "id": "song-1",
+                                "title": "Paranoid Android",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "albumId": "album-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        if query == "Blur":
+            return httpx.Response(
+                200,
+                json=nd_ok(searchResult3={"artist": [{"id": "artist-2", "name": "Blur"}]}),
+            )
+        return httpx.Response(200, json=nd_ok(searchResult3={}))
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(side_effect=navidrome_search_handler)
+        respx.get(f"{ND_BASE}/rest/getArtist.view").mock(
+            return_value=httpx.Response(
+                200, json=nd_ok(artist={"id": "artist-1", "name": "Radiohead"})
+            )
+        )
+        respx.post(f"{ND_BASE}/auth/login").mock(
+            return_value=httpx.Response(200, json={"token": "tok"})
+        )
+        respx.get(f"{ND_BASE}/api/artist/artist-1").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "biography": "Native biography",
+                    "largeImageUrl": "https://img/radiohead-native.jpg",
+                },
+            )
+        )
+
+        r = await client.get(
+            "/api/discover/detail",
+            params={"kind": "artist", "title": "Radiohead", "artistId": "artist-1"},
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is True
+    assert body["title"] == "Radiohead"
+    assert body["summary"] == "Native biography"
+    assert body["imageUrl"] == "https://img/radiohead-native.jpg"
+    assert body["tags"] == [{"name": "alternative", "count": 100, "reach": None}]
+    assert body["library"] == {
+        "inLibrary": True,
+        "libraryId": "artist-1",
+        "artistId": "artist-1",
+        "albumId": None,
+        "songId": None,
+    }
+    assert body["topAlbums"][0]["albumId"] == "album-1"
+    assert body["topTracks"][0]["songId"] == "song-1"
+    assert body["similarArtists"][0]["artistId"] == "artist-2"
+
+
+@pytest.mark.asyncio
+async def test_discover_album_detail_uses_local_tracks_and_dedupes_related_albums(
+    client, monkeypatch
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        if method == "album.getInfo":
+            return lastfm_response(
+                {
+                    "album": {
+                        "name": "OK Computer",
+                        "artist": "Radiohead",
+                        "tags": {"tag": [{"name": "art rock"}, {"name": "alternative"}]},
+                        "wiki": {"summary": "Last.fm album summary"},
+                        "tracks": {
+                            "track": [
+                                {
+                                    "name": "Airbag",
+                                    "artist": {"name": "Radiohead"},
+                                    "@attr": {"rank": "1"},
+                                }
+                            ]
+                        },
+                    }
+                }
+            )
+        if method == "artist.getTopAlbums":
+            return lastfm_response(
+                {
+                    "topalbums": {
+                        "album": [
+                            {"name": "OK Computer", "artist": {"name": "Radiohead"}},
+                            {"name": "Kid A", "artist": {"name": "Radiohead"}},
+                        ]
+                    }
+                }
+            )
+        if method == "tag.getTopAlbums":
+            tag = request.url.params["tag"]
+            if tag == "art rock":
+                return lastfm_response(
+                    {
+                        "albums": {
+                            "album": [
+                                {"name": "OK Computer", "artist": {"name": "Radiohead"}},
+                                {"name": "Mezzanine", "artist": {"name": "Massive Attack"}},
+                            ]
+                        }
+                    }
+                )
+            if tag == "alternative":
+                return lastfm_response(
+                    {"albums": {"album": [{"name": "Kid A", "artist": {"name": "Radiohead"}}]}}
+                )
+            raise AssertionError(f"unexpected tag: {tag}")
+        raise AssertionError(f"unexpected method: {method}")
+
+    def navidrome_search_handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["query"]
+        if query == "Radiohead Kid A":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "album": [
+                            {
+                                "id": "album-2",
+                                "name": "Kid A",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        if query == "Massive Attack Mezzanine":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "album": [
+                            {
+                                "id": "album-3",
+                                "name": "Mezzanine",
+                                "artist": "Massive Attack",
+                                "artistId": "artist-2",
+                            }
+                        ]
+                    }
+                ),
+            )
+        return httpx.Response(200, json=nd_ok(searchResult3={}))
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(side_effect=navidrome_search_handler)
+        respx.get(f"{ND_BASE}/rest/getAlbum.view").mock(
+            return_value=httpx.Response(
+                200,
+                json=nd_ok(
+                    album={
+                        "id": "album-1",
+                        "name": "OK Computer",
+                        "artist": "Radiohead",
+                        "artistId": "artist-1",
+                        "song": [
+                            {
+                                "id": "song-10",
+                                "title": "Airbag",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "albumId": "album-1",
+                                "track": 1,
+                                "duration": 276,
+                            },
+                            {
+                                "id": "song-11",
+                                "title": "Paranoid Android",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "albumId": "album-1",
+                                "track": 2,
+                                "duration": 385,
+                            },
+                        ],
+                    }
+                ),
+            )
+        )
+        respx.post(f"{ND_BASE}/auth/login").mock(
+            return_value=httpx.Response(200, json={"token": "tok"})
+        )
+        respx.get(f"{ND_BASE}/api/album/album-1").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "description": "Native album description",
+                    "largeImageUrl": "https://img/okc-native.jpg",
+                },
+            )
+        )
+
+        r = await client.get(
+            "/api/discover/detail",
+            params={
+                "kind": "album",
+                "title": "OK Computer",
+                "artistName": "Radiohead",
+                "albumId": "album-1",
+                "artistId": "artist-1",
+            },
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"] == "Native album description"
+    assert body["imageUrl"] == "https://img/okc-native.jpg"
+    assert [track["title"] for track in body["tracks"]] == ["Airbag", "Paranoid Android"]
+    assert [track["songId"] for track in body["tracks"]] == ["song-10", "song-11"]
+    assert [album["title"] for album in body["relatedAlbums"]] == ["Kid A", "Mezzanine"]
+
+
+@pytest.mark.asyncio
+async def test_discover_track_detail_survives_similar_failure_and_excludes_canonical_album(
+    client, monkeypatch
+):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        if method == "track.getInfo":
+            return lastfm_response(
+                {
+                    "track": {
+                        "name": "Creep",
+                        "artist": {"name": "Radiohead"},
+                        "wiki": {"summary": "Track summary"},
+                        "toptags": {"tag": [{"name": "britpop"}]},
+                        "album": {
+                            "title": "Pablo Honey",
+                            "image": [{"size": "large", "#text": "https://img/pablo.jpg"}],
+                        },
+                    }
+                }
+            )
+        if method == "track.getSimilar":
+            return httpx.Response(500, text="upstream failure")
+        raise AssertionError(f"unexpected method: {method}")
+
+    def navidrome_search_handler(request: httpx.Request) -> httpx.Response:
+        query = request.url.params["query"]
+        if query == "Radiohead Creep":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "song": [
+                            {
+                                "id": "song-1",
+                                "title": "Creep",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "album": "Pablo Honey",
+                                "albumId": "album-1",
+                            },
+                            {
+                                "id": "song-2",
+                                "title": "Creep",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                                "album": "Best Of Radiohead",
+                                "albumId": "album-2",
+                            },
+                        ]
+                    }
+                ),
+            )
+        if query == "Radiohead Pablo Honey":
+            return httpx.Response(
+                200,
+                json=nd_ok(
+                    searchResult3={
+                        "album": [
+                            {
+                                "id": "album-1",
+                                "name": "Pablo Honey",
+                                "artist": "Radiohead",
+                                "artistId": "artist-1",
+                            }
+                        ]
+                    }
+                ),
+            )
+        return httpx.Response(200, json=nd_ok(searchResult3={}))
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(side_effect=navidrome_search_handler)
+        respx.get(f"{ND_BASE}/rest/getSong.view").mock(
+            return_value=httpx.Response(
+                200,
+                json=nd_ok(
+                    song={
+                        "id": "song-1",
+                        "title": "Creep",
+                        "artist": "Radiohead",
+                        "artistId": "artist-1",
+                        "album": "Pablo Honey",
+                        "albumId": "album-1",
+                    }
+                ),
+            )
+        )
+
+        r = await client.get(
+            "/api/discover/detail",
+            params={
+                "kind": "track",
+                "title": "Creep",
+                "artistName": "Radiohead",
+                "songId": "song-1",
+                "artistId": "artist-1",
+            },
+        )
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"] == "Track summary"
+    assert body["canonicalAlbum"]["title"] == "Pablo Honey"
+    assert [album["title"] for album in body["localAlbumMatches"]] == ["Best Of Radiohead"]
+    assert body["similarTracks"] == []
+
+
+@pytest.mark.asyncio
+async def test_discover_detail_uses_cache_for_identical_requests(client, monkeypatch):
+    monkeypatch.setattr(discover_router.settings, "lastfm_api_key", "test-key")
+    calls = {
+        "artist.getInfo": 0,
+        "artist.getTopAlbums": 0,
+        "artist.getTopTracks": 0,
+        "artist.getSimilar": 0,
+    }
+
+    def lastfm_handler(request: httpx.Request) -> httpx.Response:
+        method = request.url.params["method"]
+        calls[method] += 1
+        if method == "artist.getInfo":
+            return lastfm_response({"artist": {"name": "Burial"}})
+        if method == "artist.getTopAlbums":
+            return lastfm_response({"topalbums": {"album": []}})
+        if method == "artist.getTopTracks":
+            return lastfm_response({"toptracks": {"track": []}})
+        if method == "artist.getSimilar":
+            return lastfm_response({"similarartists": {"artist": []}})
+        raise AssertionError(f"unexpected method: {method}")
+
+    with respx.mock:
+        respx.get(LASTFM_BASE).mock(side_effect=lastfm_handler)
+        respx.get(f"{ND_BASE}/rest/search3.view").mock(
+            return_value=httpx.Response(200, json=nd_ok(searchResult3={}))
+        )
+
+        first = await client.get(
+            "/api/discover/detail", params={"kind": "artist", "title": "Burial"}
+        )
+        second = await client.get(
+            "/api/discover/detail", params={"kind": "artist", "title": "Burial"}
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert calls == {
+        "artist.getInfo": 2,
+        "artist.getTopAlbums": 1,
+        "artist.getTopTracks": 1,
+        "artist.getSimilar": 1,
     }

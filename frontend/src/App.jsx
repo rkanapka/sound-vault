@@ -97,6 +97,16 @@ export default function App() {
     await discover.showTag(normalizedTag)
   }
 
+  const openDiscoverDetail = async (target) => {
+    if (!target) return
+    setActiveRoute('discover')
+    if (target.kind && target.title) {
+      await discover.openDetailFromCard(target)
+      return
+    }
+    await discover.openDetail(target)
+  }
+
   const sendDiscoverQueryToSoulseek = async (query) => {
     const normalizedQuery = query?.trim()
     if (!normalizedQuery) return
@@ -196,6 +206,7 @@ export default function App() {
               onOpenArtist={openDiscoverArtist}
               onOpenAlbum={openDiscoverAlbum}
               onPlayTrack={playDiscoverTrack}
+              onOpenDetail={openDiscoverDetail}
               onSearchSoulseek={sendDiscoverQueryToSoulseek}
             />
           ) : activeRoute === 'soulseek' ? (
@@ -216,6 +227,7 @@ export default function App() {
               onOpenDiscoverArtist={openDiscoverArtist}
               onOpenDiscoverAlbum={openDiscoverAlbum}
               onPlayDiscoverTrack={playDiscoverTrack}
+              onOpenDiscoverDetail={openDiscoverDetail}
               onSearchSoulseek={sendDiscoverQueryToSoulseek}
             />
           )}
@@ -371,6 +383,7 @@ export default function App() {
             onOpenArtist={openDiscoverArtist}
             onOpenAlbum={openDiscoverAlbum}
             onPlayTrack={playDiscoverTrack}
+            onOpenDetail={openDiscoverDetail}
             onSearchSoulseek={sendDiscoverQueryToSoulseek}
           />
         ) : activeRoute === 'soulseek' ? (
@@ -391,6 +404,7 @@ export default function App() {
             onOpenDiscoverArtist={openDiscoverArtist}
             onOpenDiscoverAlbum={openDiscoverAlbum}
             onPlayDiscoverTrack={playDiscoverTrack}
+            onOpenDiscoverDetail={openDiscoverDetail}
             onSearchSoulseek={sendDiscoverQueryToSoulseek}
           />
         )}

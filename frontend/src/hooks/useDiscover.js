@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import {
   getDiscoverBootstrap,
   getDiscoverCharts,
+  getDiscoverDetail,
   getDiscoverTag,
   getDiscoverTagCharts,
 } from '../api'
@@ -45,6 +46,35 @@ function discoverLimitForKind(kind) {
   return DEFAULT_DISCOVER_LIMITS[kind] ?? DEFAULT_DISCOVER_LIMITS.tracks
 }
 
+function normalizeDiscoverValue(value) {
+  return String(value || '')
+    .trim()
+    .toLocaleLowerCase()
+}
+
+function buildDetailKey({ kind, title, artistName, artistId, albumId, songId }) {
+  return [
+    kind,
+    normalizeDiscoverValue(title),
+    normalizeDiscoverValue(artistName),
+    artistId || '',
+    albumId || '',
+    songId || '',
+  ].join(':')
+}
+
+function detailParamsFromCard(card) {
+  if (!card?.kind || !card?.title) return null
+  return {
+    kind: card.kind,
+    title: card.title,
+    artistName: card.artistName ?? undefined,
+    artistId: card.artistId ?? undefined,
+    albumId: card.albumId ?? undefined,
+    songId: card.songId ?? undefined,
+  }
+}
+
 export function useDiscover() {
   const [enabled, setEnabled] = useState(true)
   const [mode, setMode] = useState('global')
@@ -65,6 +95,9 @@ export function useDiscover() {
   const [tagChartLoading, setTagChartLoading] = useState(EMPTY_TAG_CHART_LOADING)
   const [tagChartErrors, setTagChartErrors] = useState(EMPTY_TAG_CHART_ERRORS)
   const [error, setError] = useState(null)
+  const [activeDetail, setActiveDetail] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(null)
 
   const resolveTagName = useCallback(
     (tagName) => {
@@ -287,6 +320,60 @@ export function useDiscover() {
     await loadTag(query)
   }, [loadTag, query])
 
+  const openDetail = useCallback(async (params) => {
+    const normalizedTitle = String(params?.title || '').trim()
+    const normalizedKind = String(params?.kind || '').trim()
+    if (!normalizedTitle || !normalizedKind) return null
+
+    const nextParams = {
+      kind: normalizedKind,
+      title: normalizedTitle,
+      artistName: params?.artistName?.trim() || undefined,
+      artistId: params?.artistId || undefined,
+      albumId: params?.albumId || undefined,
+      songId: params?.songId || undefined,
+    }
+
+    setDetailLoading(true)
+    setDetailError(null)
+    try {
+      const data = await getDiscoverDetail(nextParams)
+      const nextEnabled = Boolean(data?.enabled)
+      setEnabled(nextEnabled)
+      setActiveDetail({
+        ...data,
+        detailKey: buildDetailKey(nextParams),
+      })
+      return data
+    } catch (e) {
+      setDetailError(e.message)
+      throw e
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
+
+  const openDetailFromCard = useCallback(
+    async (card) => {
+      const params = detailParamsFromCard(card)
+      if (!params) return null
+      return openDetail(params)
+    },
+    [openDetail]
+  )
+
+  const replaceDetail = useCallback(
+    async (params) => {
+      return openDetail(params)
+    },
+    [openDetail]
+  )
+
+  const closeDetail = useCallback(() => {
+    setActiveDetail(null)
+    setDetailError(null)
+  }, [])
+
   const currentTagKey = normalizeTagKey(currentTag?.tag?.name)
   const currentTagSelections = tagChartSelections[currentTagKey] || {}
   const currentTagChartPages = {
@@ -321,6 +408,9 @@ export function useDiscover() {
     tagChartLoading,
     tagChartErrors,
     error,
+    activeDetail,
+    detailLoading,
+    detailError,
     init,
     setQuery,
     setSoulseekSeedQuery,
@@ -331,5 +421,9 @@ export function useDiscover() {
     showTagChart,
     loadTagChartPage,
     searchTag,
+    openDetail,
+    openDetailFromCard,
+    replaceDetail,
+    closeDetail,
   }
 }

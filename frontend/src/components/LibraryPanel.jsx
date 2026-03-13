@@ -128,8 +128,8 @@ function DiscoverTagPill({ tag, onClick }) {
 
 function CompactDiscoverItem({ card, onClick, rank }) {
   const imageSrc = getDiscoverCardImage(card, 96)
-  const subtitle = card.artistName || (card.inLibrary ? 'In your library' : 'Send to Soulseek')
-  const actionLabel = card.inLibrary ? (card.kind === 'track' ? 'Play' : 'Open') : 'Soulseek'
+  const subtitle = card.artistName || (card.inLibrary ? 'In your library' : 'Discover more')
+  const actionLabel = 'Details'
 
   return (
     <button
@@ -174,9 +174,7 @@ export default function LibraryPanel({
   onNavigate,
   onOpenDiscoverGlobal,
   onOpenDiscoverTag,
-  onOpenDiscoverArtist,
-  onOpenDiscoverAlbum,
-  onPlayDiscoverTrack,
+  onOpenDiscoverDetail,
   onSearchSoulseek,
 }) {
   const {
@@ -458,22 +456,7 @@ export default function LibraryPanel({
 
   const handleHomeDiscoverCard = async (card) => {
     if (!card) return
-
-    if (!card.inLibrary) {
-      await onSearchSoulseek?.(card.soulseekQuery)
-      return
-    }
-
-    if (card.kind === 'artist') {
-      await onOpenDiscoverArtist?.(card)
-      return
-    }
-    if (card.kind === 'album') {
-      await onOpenDiscoverAlbum?.(card)
-      return
-    }
-
-    await onPlayDiscoverTrack?.(card)
+    await onOpenDiscoverDetail?.(card)
   }
 
   const openAlbumFromTrack = (track) => {

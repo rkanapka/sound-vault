@@ -57,6 +57,14 @@ export const getDiscoverTagCharts = (tag, kind = 'artists', page = 1, limit = 12
     'GET',
     `/api/discover/tag/${encodeURIComponent(tag)}/charts?kind=${encodeURIComponent(kind)}&page=${page}&limit=${limit}`
   )
+export const getDiscoverDetail = ({ kind, title, artistName, artistId, albumId, songId }) => {
+  const params = new URLSearchParams({ kind, title })
+  if (artistName) params.set('artistName', artistName)
+  if (artistId) params.set('artistId', artistId)
+  if (albumId) params.set('albumId', albumId)
+  if (songId) params.set('songId', songId)
+  return apiFetch('GET', `/api/discover/detail?${params.toString()}`)
+}
 
 // --- Playlists ---
 export const getPlaylists = () => apiFetch('GET', '/api/library/playlists')

@@ -12,12 +12,22 @@ import {
   Radio,
   Search,
   Sparkles,
+  X,
 } from 'lucide-react'
 import { getDiscoverCardImage } from '../utils/discover'
 
 function fmtCount(value) {
   if (value == null) return null
   return new Intl.NumberFormat().format(value)
+}
+
+function fmtDuration(value) {
+  if (value == null) return null
+  const total = Number(value)
+  if (!Number.isFinite(total) || total <= 0) return null
+  const minutes = Math.floor(total / 60)
+  const seconds = Math.floor(total % 60)
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
 function tagMetric(tag) {
@@ -109,11 +119,27 @@ function ExplorerHeader({ eyebrow, accentClassName, title, description, badges =
   )
 }
 
+function DiscoverTextButton({ onClick, className, children, title }) {
+  if (!onClick) return <span className={className}>{children}</span>
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`${className} text-left transition-colors hover:text-emerald-200`}
+    >
+      {children}
+    </button>
+  )
+}
+
 function DiscoverCard({
   card,
   pendingId,
   onPrimaryAction,
   onSecondaryAction,
+  onOpenDetail,
   onSearchSoulseek,
   compact = false,
   chartCompact = false,
@@ -165,16 +191,35 @@ function DiscoverCard({
               dense ? 'min-h-0' : `mt-3 ${chartCompact ? 'min-h-[3.4rem]' : 'min-h-[4rem]'}`
             }
           >
-            <p
+            <DiscoverTextButton
+              onClick={onOpenDetail ? () => onOpenDetail(card) : null}
+              title={`Open ${card.kind} details`}
               className={`line-clamp-2 font-medium leading-snug text-slate-100 ${
                 dense || chartCompact ? 'text-[13px]' : 'text-sm'
               }`}
             >
               {card.title}
-            </p>
-            <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-              {card.artistName || 'Artist'}
-            </p>
+            </DiscoverTextButton>
+            <div className="mt-1 line-clamp-2 text-xs text-slate-500">
+              {card.artistName ? (
+                <DiscoverTextButton
+                  onClick={
+                    onOpenDetail
+                      ? () =>
+                          onOpenDetail({
+                            kind: 'artist',
+                            title: card.artistName,
+                            artistId: card.artistId,
+                          })
+                      : null
+                  }
+                >
+                  {card.artistName}
+                </DiscoverTextButton>
+              ) : (
+                'Artist'
+              )}
+            </div>
           </div>
 
           <div className="mt-3 flex gap-2">
@@ -236,6 +281,7 @@ function SectionRow({
   onAction,
   onPrimaryAction,
   onSecondaryAction,
+  onOpenDetail,
   onSearchSoulseek,
 }) {
   return (
@@ -270,6 +316,7 @@ function SectionRow({
               pendingId={pendingId}
               onPrimaryAction={onPrimaryAction}
               onSecondaryAction={onSecondaryAction}
+              onOpenDetail={onOpenDetail}
               onSearchSoulseek={onSearchSoulseek}
               compact
             />
@@ -289,6 +336,7 @@ function ChartGrid({
   onPageChange,
   onPrimaryAction,
   onSecondaryAction,
+  onOpenDetail,
   onSearchSoulseek,
 }) {
   const items = chart?.items || []
@@ -353,6 +401,7 @@ function ChartGrid({
                 pendingId={pendingId}
                 onPrimaryAction={onPrimaryAction}
                 onSecondaryAction={onSecondaryAction}
+                onOpenDetail={onOpenDetail}
                 onSearchSoulseek={onSearchSoulseek}
                 chartCompact={chartCompact}
                 dense={denseCards}
@@ -399,6 +448,7 @@ function TagChartExplorer({
   onPageChange,
   onPrimaryAction,
   onSecondaryAction,
+  onOpenDetail,
   onSearchSoulseek,
 }) {
   const items = chart?.items || []
@@ -488,6 +538,7 @@ function TagChartExplorer({
                 pendingId={pendingId}
                 onPrimaryAction={onPrimaryAction}
                 onSecondaryAction={onSecondaryAction}
+                onOpenDetail={onOpenDetail}
                 onSearchSoulseek={onSearchSoulseek}
                 chartCompact={chartCompact}
                 dense={denseCards}
@@ -523,11 +574,432 @@ function TagChartExplorer({
   )
 }
 
+function detailToCard(detail) {
+  if (!detail?.kind || !detail?.title) return null
+  return {
+    kind: detail.kind,
+    title: detail.title,
+    artistName: detail.artistName,
+    imageUrl: detail.imageUrl,
+    inLibrary: Boolean(detail.library?.inLibrary),
+    libraryId: detail.library?.libraryId ?? null,
+    artistId: detail.library?.artistId ?? null,
+    albumId: detail.library?.albumId ?? null,
+    songId: detail.library?.songId ?? null,
+    soulseekQuery:
+      detail.kind === 'artist'
+        ? detail.title
+        : [detail.artistName, detail.title].filter(Boolean).join(' '),
+  }
+}
+
+function DetailActionButton({ onClick, className, children, disabled = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors disabled:cursor-default disabled:opacity-60 ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DetailLinkRow({ card, subtitle, onOpenDetail }) {
+  if (!card) return null
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenDetail(card)}
+      className="flex w-full items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/35 px-3 py-3 text-left transition-colors hover:border-slate-600 hover:bg-slate-900/60"
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-800/70 bg-slate-900/70 text-slate-400">
+        {card.kind === 'artist' ? <Mic2 size={16} /> : <Disc3 size={16} />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-100">{card.title}</p>
+        <p className="mt-0.5 truncate text-xs text-slate-500">
+          {subtitle || card.artistName || 'Open details'}
+        </p>
+      </div>
+      <ChevronRight size={14} className="text-slate-600" />
+    </button>
+  )
+}
+
+function DetailTrackList({ tracks, pendingId, onOpenDetail, onPrimaryAction, onSearchSoulseek }) {
+  if (!tracks?.length) {
+    return (
+      <div className="rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-5 text-sm text-slate-600">
+        No tracks available for this album.
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-[1.4rem] border border-slate-800/70 bg-slate-950/35">
+      <div className="flex items-center gap-3 border-b border-slate-800/70 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+        <span className="w-8 text-center">#</span>
+        <span className="flex-1">Tracks</span>
+        <span className="hidden sm:block">Time</span>
+        <span className="w-[8.75rem] text-right">Actions</span>
+      </div>
+      <div className="divide-y divide-slate-800/60">
+        {tracks.map((track, index) => {
+          const actionKey = track.inLibrary
+            ? String(track.songId ?? `${track.kind}:${track.title}:${index}`)
+            : `detail-track:${track.soulseekQuery}:${index}`
+          const isPending = pendingId === actionKey
+          const soulseekKey = `detail-track-search:${track.soulseekQuery}:${index}`
+          const isSoulseekPending = pendingId === soulseekKey
+
+          return (
+            <div
+              key={`detail-track-${track.artistName || 'artist'}-${track.title}-${index}`}
+              className="flex items-center gap-3 px-4 py-3"
+            >
+              <span className="w-8 text-center text-xs text-slate-600">
+                {track.trackNumber ?? index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <DiscoverTextButton
+                  onClick={() => onOpenDetail(track)}
+                  className="block truncate text-sm font-medium text-slate-100"
+                >
+                  {track.title}
+                </DiscoverTextButton>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                  {track.artistName && (
+                    <DiscoverTextButton
+                      onClick={() =>
+                        onOpenDetail({
+                          kind: 'artist',
+                          title: track.artistName,
+                          artistId: track.artistId,
+                        })
+                      }
+                    >
+                      {track.artistName}
+                    </DiscoverTextButton>
+                  )}
+                  {track.albumTitle && <span>{track.albumTitle}</span>}
+                </div>
+              </div>
+              <span className="hidden text-xs text-slate-500 sm:block">
+                {fmtDuration(track.duration) || '—'}
+              </span>
+              <div className="flex w-[8.75rem] justify-end gap-2">
+                <DetailActionButton
+                  onClick={() => onSearchSoulseek(track, soulseekKey)}
+                  disabled={isSoulseekPending}
+                  className="border border-slate-700/70 bg-slate-900/60 text-slate-200 hover:border-slate-500 hover:text-white"
+                >
+                  {isSoulseekPending ? 'Working' : 'Soulseek'}
+                </DetailActionButton>
+                {track.inLibrary && (
+                  <DetailActionButton
+                    onClick={() => onPrimaryAction(track, actionKey)}
+                    disabled={isPending}
+                    className="bg-emerald-500/16 text-emerald-100 hover:bg-emerald-500/24"
+                  >
+                    {isPending ? 'Working' : 'Play'}
+                  </DetailActionButton>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function DiscoverDetailPanel({
+  detail,
+  detailLoading,
+  detailError,
+  pendingId,
+  onClose,
+  onOpenDetail,
+  onOpenTag,
+  onPrimaryAction,
+  onSecondaryAction,
+  onSearchSoulseek,
+}) {
+  const actionCard = detailToCard(detail)
+  const imageSrc = actionCard ? getDiscoverCardImage(actionCard, 720) : null
+  const Icon = cardIcon(detail?.kind || 'track')
+  const actionKey = actionCard?.inLibrary
+    ? String(actionCard.libraryId ?? `${actionCard.kind}:${actionCard.title}`)
+    : `detail:${actionCard?.kind}:${actionCard?.soulseekQuery}`
+  const isActionPending = pendingId === actionKey
+  const soulseekKey = actionCard ? `detail-search:${actionCard.soulseekQuery}` : null
+  const isSoulseekPending = soulseekKey ? pendingId === soulseekKey : false
+  const hasContent = Boolean(detail)
+
+  return (
+    <div className="flex h-full flex-col bg-[linear-gradient(180deg,rgba(12,16,22,0.98),rgba(6,9,13,1))]">
+      <div className="flex items-center justify-between border-b border-slate-800/70 px-4 py-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+            Discover Detail
+          </p>
+          <p className="mt-1 text-sm text-slate-300">
+            {detail?.kind
+              ? `${detail.kind[0].toUpperCase()}${detail.kind.slice(1)} view`
+              : 'Loading'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-slate-700/70 bg-slate-900/70 p-2 text-slate-400 transition-colors hover:border-slate-500 hover:text-white"
+          title="Close details"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {detailError && (
+          <div className="mb-4 rounded-2xl border border-red-800/40 bg-red-950/20 px-4 py-3 text-sm text-red-300">
+            {detailError}
+          </div>
+        )}
+
+        {!hasContent && detailLoading && (
+          <div className="flex h-full items-center justify-center rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-10 text-sm text-slate-500">
+            <span className="inline-flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin text-emerald-400" />
+              Loading details...
+            </span>
+          </div>
+        )}
+
+        {hasContent && (
+          <div className="space-y-6">
+            <section className="overflow-hidden rounded-[1.6rem] border border-slate-800/70 bg-[linear-gradient(160deg,rgba(19,24,31,0.9),rgba(10,12,16,0.98))]">
+              <div className="relative">
+                {imageSrc ? (
+                  <img src={imageSrc} alt="" className="aspect-[16/10] w-full object-cover" />
+                ) : (
+                  <div className="flex aspect-[16/10] w-full items-center justify-center bg-[radial-gradient(circle_at_top,#1f2937_0%,#0f172a_55%,#020617_100%)] text-slate-600">
+                    <Icon size={40} strokeWidth={1.4} />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ExplorerBadge>{detail.kind}</ExplorerBadge>
+                    {detail.library?.inLibrary && <ExplorerBadge>Library match</ExplorerBadge>}
+                    {detailLoading && <ExplorerBadge>Refreshing</ExplorerBadge>}
+                  </div>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-50">
+                    {detail.title}
+                  </h2>
+                  {detail.artistName && (
+                    <div className="mt-2 text-sm text-slate-300">
+                      <DiscoverTextButton
+                        onClick={() =>
+                          onOpenDetail({
+                            kind: 'artist',
+                            title: detail.artistName,
+                            artistId: detail.artist?.artistId ?? detail.library?.artistId,
+                          })
+                        }
+                      >
+                        {detail.artistName}
+                      </DiscoverTextButton>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 px-4 py-4">
+                {detail.summary && (
+                  <p className="text-sm leading-6 text-slate-300 whitespace-pre-line">
+                    {detail.summary}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {detail.tags?.map((tag) => (
+                    <TagChip
+                      key={`${detail.kind}-${detail.title}-${tag.name}`}
+                      tag={tag}
+                      onClick={onOpenTag}
+                    />
+                  ))}
+                </div>
+
+                {actionCard && (
+                  <div className="flex flex-wrap gap-2">
+                    <DetailActionButton
+                      onClick={() => onSearchSoulseek(actionCard, soulseekKey)}
+                      disabled={isSoulseekPending}
+                      className="border border-slate-700/70 bg-slate-900/60 text-slate-200 hover:border-slate-500 hover:text-white"
+                    >
+                      {isSoulseekPending ? 'Working' : 'Soulseek'}
+                    </DetailActionButton>
+                    {actionCard.inLibrary && (
+                      <DetailActionButton
+                        onClick={() => onPrimaryAction(actionCard, actionKey)}
+                        disabled={isActionPending}
+                        className="bg-emerald-500/16 text-emerald-100 hover:bg-emerald-500/24"
+                      >
+                        {isActionPending
+                          ? 'Working'
+                          : actionCard.kind === 'track'
+                            ? 'Play'
+                            : 'Open'}
+                      </DetailActionButton>
+                    )}
+                    {actionCard.inLibrary && detail.kind !== 'artist' && (
+                      <DetailActionButton
+                        onClick={() => onSecondaryAction(actionCard)}
+                        className="border border-slate-700/70 bg-slate-900/60 text-slate-200 hover:border-slate-500 hover:text-white"
+                      >
+                        Library
+                      </DetailActionButton>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {detail.artist && detail.kind !== 'artist' && (
+              <div>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Artist
+                </p>
+                <DetailLinkRow
+                  card={detail.artist}
+                  subtitle="Open artist detail"
+                  onOpenDetail={onOpenDetail}
+                />
+              </div>
+            )}
+
+            {detail.kind === 'artist' && (
+              <>
+                <SectionRow
+                  title="Top Albums"
+                  subtitle="Albums from Last.fm with local matching when available."
+                  items={detail.topAlbums || []}
+                  pendingId={pendingId}
+                  emptyLabel="No albums surfaced for this artist."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+                <SectionRow
+                  title="Top Tracks"
+                  subtitle="Play local matches or branch out to Soulseek."
+                  items={detail.topTracks || []}
+                  pendingId={pendingId}
+                  emptyLabel="No tracks surfaced for this artist."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+                <SectionRow
+                  title="Similar Artists"
+                  subtitle="Adjacent artists to keep the discovery chain moving."
+                  items={detail.similarArtists || []}
+                  pendingId={pendingId}
+                  emptyLabel="No similar artists surfaced."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+              </>
+            )}
+
+            {detail.kind === 'album' && (
+              <>
+                <div>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    Tracklist
+                  </p>
+                  <DetailTrackList
+                    tracks={detail.tracks}
+                    pendingId={pendingId}
+                    onOpenDetail={onOpenDetail}
+                    onPrimaryAction={onPrimaryAction}
+                    onSearchSoulseek={onSearchSoulseek}
+                  />
+                </div>
+                <SectionRow
+                  title="Related Albums"
+                  subtitle="Artist and tag-driven album recommendations."
+                  items={detail.relatedAlbums || []}
+                  pendingId={pendingId}
+                  emptyLabel="No related albums surfaced."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+              </>
+            )}
+
+            {detail.kind === 'track' && (
+              <>
+                {detail.canonicalAlbum && (
+                  <SectionRow
+                    title="Canonical Album"
+                    subtitle="Album attached to the track info from Last.fm."
+                    items={[detail.canonicalAlbum]}
+                    pendingId={pendingId}
+                    emptyLabel="No canonical album surfaced."
+                    onPrimaryAction={onPrimaryAction}
+                    onSecondaryAction={onSecondaryAction}
+                    onOpenDetail={onOpenDetail}
+                    onSearchSoulseek={onSearchSoulseek}
+                  />
+                )}
+                <SectionRow
+                  title="Local Album Matches"
+                  subtitle="Albums in your library that contain this track."
+                  items={detail.localAlbumMatches || []}
+                  pendingId={pendingId}
+                  emptyLabel="No local album matches found."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+                <SectionRow
+                  title="Similar Tracks"
+                  subtitle="Use these to branch into adjacent songs."
+                  items={detail.similarTracks || []}
+                  pendingId={pendingId}
+                  emptyLabel="No similar tracks surfaced."
+                  onPrimaryAction={onPrimaryAction}
+                  onSecondaryAction={onSecondaryAction}
+                  onOpenDetail={onOpenDetail}
+                  onSearchSoulseek={onSearchSoulseek}
+                />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function DiscoverPanel({
   discover,
   onOpenArtist,
   onOpenAlbum,
   onPlayTrack,
+  onOpenDetail,
   onSearchSoulseek,
 }) {
   const {
@@ -549,6 +1021,9 @@ export default function DiscoverPanel({
     chartLoading,
     tagChartLoading,
     tagChartErrors,
+    activeDetail,
+    detailLoading,
+    detailError,
     setQuery,
     setSoulseekSeedQuery,
     searchTag,
@@ -557,6 +1032,8 @@ export default function DiscoverPanel({
     loadChartPage,
     showTagChart,
     loadTagChartPage,
+    replaceDetail,
+    closeDetail,
   } = discover
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState(null)
@@ -631,6 +1108,17 @@ export default function DiscoverPanel({
   const handleSearchSoulseek = (card, actionKey) =>
     runAction(actionKey, () => onSearchSoulseek(card.soulseekQuery))
 
+  const handleOpenDetail = async (target) => {
+    if (!target?.kind || !target?.title) return
+    try {
+      if (onOpenDetail) {
+        await onOpenDetail(target)
+        return
+      }
+      await replaceDetail(target)
+    } catch {}
+  }
+
   const scrollToChartExplorer = () => {
     chartExplorerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -657,9 +1145,14 @@ export default function DiscoverPanel({
     scrollToTagExplorer()
   }
 
+  const hasDetailShell = Boolean(activeDetail || detailLoading || detailError)
+  const desktopDetailShellClassName = hasDetailShell
+    ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_30rem] xl:grid-cols-[minmax(0,1fr)_34rem] 2xl:grid-cols-[minmax(0,1fr)_38rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden'
+    : ''
+
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex-none border-b border-slate-800 p-3">
+    <section className={`flex min-h-0 min-w-0 flex-1 flex-col ${desktopDetailShellClassName}`}>
+      <div className="flex-none border-b border-slate-800 p-3 lg:col-start-1 lg:row-start-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-700/70 bg-slate-900/70 text-amber-200">
@@ -718,240 +1211,291 @@ export default function DiscoverPanel({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {!loading && !error && !enabled && (
-          <div className="rounded-[1.6rem] border border-slate-800/70 bg-[linear-gradient(160deg,rgba(17,24,39,0.8),rgba(9,11,16,0.92))] p-6 shadow-[0_24px_56px_rgba(0,0,0,0.28)]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-200">
-                <Sparkles size={18} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-100">Last.fm discovery is disabled</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Add <code className="text-slate-300">LASTFM_API_KEY</code> to your SoundVault
-                  environment and restart the app.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-2xl border border-red-800/40 bg-red-950/20 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-
-        {actionError && (
-          <div className="mb-4 rounded-2xl border border-red-800/40 bg-red-950/20 px-4 py-3 text-sm text-red-300">
-            {actionError}
-          </div>
-        )}
-
-        {enabled && !error && mode === 'global' && (
-          <div className="space-y-6">
-            <section className="overflow-hidden rounded-[1.8rem] border border-slate-800/70 bg-[linear-gradient(150deg,rgba(18,34,32,0.78),rgba(27,19,17,0.72),rgba(10,14,20,0.96))] shadow-[0_28px_70px_rgba(0,0,0,0.32)]">
-              <div className="border-b border-slate-800/60 px-5 py-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="max-w-2xl">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-200/80">
-                      Global Charts
-                    </p>
-                    <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">
-                      Last.fm Global Tops
-                    </h2>
-                    <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
-                      Use the anonymous global feed to scout what is rising right now, then switch
-                      to Tags when you want a tighter genre lane.
-                    </p>
-                  </div>
-                  <div className="flex min-w-[11rem] flex-col gap-2 rounded-[1.4rem] border border-white/6 bg-black/20 p-3 text-xs text-slate-400">
-                    <span className="inline-flex items-center gap-2 text-emerald-100">
-                      <Radio size={13} />
-                      Home friendly
-                    </span>
-                    <span>These sections also power the refreshed Home dashboard.</span>
-                    <span>Missing tracks or artists can jump straight to Soulseek.</span>
-                  </div>
+      <div className="flex-1 min-h-0 lg:col-start-1 lg:row-start-2 lg:min-w-0">
+        <div className="h-full overflow-y-auto px-4 py-4">
+          {!loading && !error && !enabled && (
+            <div className="rounded-[1.6rem] border border-slate-800/70 bg-[linear-gradient(160deg,rgba(17,24,39,0.8),rgba(9,11,16,0.92))] p-6 shadow-[0_24px_56px_rgba(0,0,0,0.28)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-200">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-100">
+                    Last.fm discovery is disabled
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Add <code className="text-slate-300">LASTFM_API_KEY</code> to your SoundVault
+                    environment and restart the app.
+                  </p>
                 </div>
               </div>
-            </section>
+            </div>
+          )}
 
-            <SectionRow
-              title="Top Artists"
-              subtitle="Preview the global artist chart before opening the full explorer."
-              items={trendingArtists || []}
-              pendingId={pendingId}
-              emptyLabel="No artist data right now."
-              actionLabel="See more"
-              onAction={() => handleOpenGlobalExplorer('artists')}
-              onPrimaryAction={handlePrimaryAction}
-              onSecondaryAction={handleSecondaryAction}
-              onSearchSoulseek={handleSearchSoulseek}
-            />
+          {error && (
+            <div className="rounded-2xl border border-red-800/40 bg-red-950/20 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
 
-            <SectionRow
-              title="Top Tracks"
-              subtitle="Play local matches or branch out through Soulseek."
-              items={trendingTracks || []}
-              pendingId={pendingId}
-              emptyLabel="No track data right now."
-              actionLabel="See more"
-              onAction={() => handleOpenGlobalExplorer('tracks')}
-              onPrimaryAction={handlePrimaryAction}
-              onSecondaryAction={handleSecondaryAction}
-              onSearchSoulseek={handleSearchSoulseek}
-            />
+          {actionError && (
+            <div className="mb-4 rounded-2xl border border-red-800/40 bg-red-950/20 px-4 py-3 text-sm text-red-300">
+              {actionError}
+            </div>
+          )}
 
-            <div ref={chartExplorerRef}>
-              <ChartGrid
-                chart={currentChart}
-                chartKind={chartKind}
-                chartLoading={chartLoading}
+          {enabled && !error && mode === 'global' && (
+            <div className="space-y-6">
+              <section className="overflow-hidden rounded-[1.8rem] border border-slate-800/70 bg-[linear-gradient(150deg,rgba(18,34,32,0.78),rgba(27,19,17,0.72),rgba(10,14,20,0.96))] shadow-[0_28px_70px_rgba(0,0,0,0.32)]">
+                <div className="border-b border-slate-800/60 px-5 py-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="max-w-2xl">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-200/80">
+                        Global Charts
+                      </p>
+                      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">
+                        Last.fm Global Tops
+                      </h2>
+                      <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+                        Use the anonymous global feed to scout what is rising right now, then switch
+                        to Tags when you want a tighter genre lane.
+                      </p>
+                    </div>
+                    <div className="flex min-w-[11rem] flex-col gap-2 rounded-[1.4rem] border border-white/6 bg-black/20 p-3 text-xs text-slate-400">
+                      <span className="inline-flex items-center gap-2 text-emerald-100">
+                        <Radio size={13} />
+                        Home friendly
+                      </span>
+                      <span>These sections also power the refreshed Home dashboard.</span>
+                      <span>Missing tracks or artists can jump straight to Soulseek.</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <SectionRow
+                title="Top Artists"
+                subtitle="Preview the global artist chart before opening the full explorer."
+                items={trendingArtists || []}
                 pendingId={pendingId}
-                onSelectKind={(kind) => showGlobal(kind)}
-                onPageChange={(page) => loadChartPage(page, chartKind)}
+                emptyLabel="No artist data right now."
+                actionLabel="See more"
+                onAction={() => handleOpenGlobalExplorer('artists')}
                 onPrimaryAction={handlePrimaryAction}
                 onSecondaryAction={handleSecondaryAction}
+                onOpenDetail={handleOpenDetail}
                 onSearchSoulseek={handleSearchSoulseek}
               />
-            </div>
-          </div>
-        )}
 
-        {enabled && !error && mode === 'tags' && (
-          <div className="space-y-6">
-            <form onSubmit={handleTagSubmit} className="flex gap-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by tag..."
-                className="sv-search-input flex-1 rounded-xl px-3 py-2.5 text-sm transition-colors"
+              <SectionRow
+                title="Top Tracks"
+                subtitle="Play local matches or branch out through Soulseek."
+                items={trendingTracks || []}
+                pendingId={pendingId}
+                emptyLabel="No track data right now."
+                actionLabel="See more"
+                onAction={() => handleOpenGlobalExplorer('tracks')}
+                onPrimaryAction={handlePrimaryAction}
+                onSecondaryAction={handleSecondaryAction}
+                onOpenDetail={handleOpenDetail}
+                onSearchSoulseek={handleSearchSoulseek}
               />
-              <button
-                type="submit"
-                className="sv-search-btn flex h-10 w-10 items-center justify-center rounded-xl transition-colors"
-                title="Search tag"
-              >
-                {tagLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-              </button>
-            </form>
 
-            {!currentTag && (
-              <div className="rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-10 text-sm text-slate-600">
-                Pick a top tag or search for one.
+              <div ref={chartExplorerRef}>
+                <ChartGrid
+                  chart={currentChart}
+                  chartKind={chartKind}
+                  chartLoading={chartLoading}
+                  pendingId={pendingId}
+                  onSelectKind={(kind) => showGlobal(kind)}
+                  onPageChange={(page) => loadChartPage(page, chartKind)}
+                  onPrimaryAction={handlePrimaryAction}
+                  onSecondaryAction={handleSecondaryAction}
+                  onOpenDetail={handleOpenDetail}
+                  onSearchSoulseek={handleSearchSoulseek}
+                />
               </div>
-            )}
+            </div>
+          )}
 
-            {currentTag && (
-              <>
-                <section className="overflow-hidden rounded-[1.8rem] border border-slate-800/70 bg-[linear-gradient(150deg,rgba(36,24,20,0.72),rgba(13,18,24,0.92))] shadow-[0_28px_70px_rgba(0,0,0,0.32)]">
-                  <div className="border-b border-slate-800/60 px-5 py-5">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="max-w-2xl">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-200/80">
-                          Selected Tag
-                        </p>
-                        <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">
-                          {currentTag.tag?.name || 'Discover'}
-                        </h2>
-                        {tagHeroMeta && (
-                          <p className="mt-2 text-sm text-slate-400">{tagHeroMeta}</p>
-                        )}
-                        {currentTag.tag?.summary && (
-                          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
-                            {currentTag.tag.summary}
+          {enabled && !error && mode === 'tags' && (
+            <div className="space-y-6">
+              <form onSubmit={handleTagSubmit} className="flex gap-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by tag..."
+                  className="sv-search-input flex-1 rounded-xl px-3 py-2.5 text-sm transition-colors"
+                />
+                <button
+                  type="submit"
+                  className="sv-search-btn flex h-10 w-10 items-center justify-center rounded-xl transition-colors"
+                  title="Search tag"
+                >
+                  {tagLoading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Search size={14} />
+                  )}
+                </button>
+              </form>
+
+              {!currentTag && (
+                <div className="rounded-2xl border border-slate-800/70 bg-slate-950/30 px-4 py-10 text-sm text-slate-600">
+                  Pick a top tag or search for one.
+                </div>
+              )}
+
+              {currentTag && (
+                <>
+                  <section className="overflow-hidden rounded-[1.8rem] border border-slate-800/70 bg-[linear-gradient(150deg,rgba(36,24,20,0.72),rgba(13,18,24,0.92))] shadow-[0_28px_70px_rgba(0,0,0,0.32)]">
+                    <div className="border-b border-slate-800/60 px-5 py-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="max-w-2xl">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-200/80">
+                            Selected Tag
                           </p>
-                        )}
+                          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">
+                            {currentTag.tag?.name || 'Discover'}
+                          </h2>
+                          {tagHeroMeta && (
+                            <p className="mt-2 text-sm text-slate-400">{tagHeroMeta}</p>
+                          )}
+                          {currentTag.tag?.summary && (
+                            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+                              {currentTag.tag.summary}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex min-w-[11rem] flex-col gap-2 rounded-[1.4rem] border border-white/6 bg-black/20 p-3 text-xs text-slate-400">
+                          <span className="inline-flex items-center gap-2 text-amber-100">
+                            <Radio size={13} />
+                            Tag signals
+                          </span>
+                          <span>Top artists, albums, and tracks for the active tag.</span>
+                          <span>Open local matches or jump straight to Soulseek.</span>
+                        </div>
                       </div>
-                      <div className="flex min-w-[11rem] flex-col gap-2 rounded-[1.4rem] border border-white/6 bg-black/20 p-3 text-xs text-slate-400">
-                        <span className="inline-flex items-center gap-2 text-amber-100">
-                          <Radio size={13} />
-                          Tag signals
-                        </span>
-                        <span>Top artists, albums, and tracks for the active tag.</span>
-                        <span>Open local matches or jump straight to Soulseek.</span>
-                      </div>
+
+                      {currentTag.similarTags?.length > 0 && (
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {currentTag.similarTags.map((tag) => (
+                            <TagChip
+                              key={tag.name}
+                              tag={tag}
+                              active={tag.name === currentTagName}
+                              onClick={(nextTag) => showTag(nextTag)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  </section>
 
-                    {currentTag.similarTags?.length > 0 && (
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {currentTag.similarTags.map((tag) => (
-                          <TagChip
-                            key={tag.name}
-                            tag={tag}
-                            active={tag.name === currentTagName}
-                            onClick={(nextTag) => showTag(nextTag)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <SectionRow
-                  title="Top Artists"
-                  subtitle="Open local matches or send missing artists to Soulseek."
-                  items={currentTag.topArtists || []}
-                  pendingId={pendingId}
-                  emptyLabel="Nothing surfaced for this tag."
-                  actionLabel="See more"
-                  onAction={() => handleOpenTagExplorer('artists')}
-                  onPrimaryAction={handlePrimaryAction}
-                  onSecondaryAction={handleSecondaryAction}
-                  onSearchSoulseek={handleSearchSoulseek}
-                />
-
-                <SectionRow
-                  title="Top Albums"
-                  subtitle="Album cards resolve back into Navidrome whenever possible."
-                  items={currentTag.topAlbums || []}
-                  pendingId={pendingId}
-                  emptyLabel="No albums surfaced for this tag."
-                  actionLabel="See more"
-                  onAction={() => handleOpenTagExplorer('albums')}
-                  onPrimaryAction={handlePrimaryAction}
-                  onSecondaryAction={handleSecondaryAction}
-                  onSearchSoulseek={handleSearchSoulseek}
-                />
-
-                <SectionRow
-                  title="Top Tracks"
-                  subtitle="Play the track if it exists locally, otherwise search the release on Soulseek."
-                  items={currentTag.topTracks || []}
-                  pendingId={pendingId}
-                  emptyLabel="No tracks surfaced for this tag."
-                  actionLabel="See more"
-                  onAction={() => handleOpenTagExplorer('tracks')}
-                  onPrimaryAction={handlePrimaryAction}
-                  onSecondaryAction={handleSecondaryAction}
-                  onSearchSoulseek={handleSearchSoulseek}
-                />
-
-                <div ref={tagExplorerRef}>
-                  <TagChartExplorer
-                    currentTag={currentTag}
-                    selectedKind={activeTagExplorerKind}
-                    chart={activeTagExplorerKind ? currentTagCharts[activeTagExplorerKind] : null}
-                    loading={
-                      activeTagExplorerKind
-                        ? tagChartLoading[activeTagExplorerKind] || shouldBootstrapTagExplorer
-                        : false
-                    }
-                    error={activeTagExplorerKind ? tagChartErrors[activeTagExplorerKind] : null}
+                  <SectionRow
+                    title="Top Artists"
+                    subtitle="Open local matches or send missing artists to Soulseek."
+                    items={currentTag.topArtists || []}
                     pendingId={pendingId}
-                    onSelectKind={handleOpenTagExplorer}
-                    onPageChange={(page) => loadTagChartPage(activeTagExplorerKind, page)}
+                    emptyLabel="Nothing surfaced for this tag."
+                    actionLabel="See more"
+                    onAction={() => handleOpenTagExplorer('artists')}
                     onPrimaryAction={handlePrimaryAction}
                     onSecondaryAction={handleSecondaryAction}
+                    onOpenDetail={handleOpenDetail}
                     onSearchSoulseek={handleSearchSoulseek}
                   />
-                </div>
-              </>
-            )}
-          </div>
-        )}
+
+                  <SectionRow
+                    title="Top Albums"
+                    subtitle="Album cards resolve back into Navidrome whenever possible."
+                    items={currentTag.topAlbums || []}
+                    pendingId={pendingId}
+                    emptyLabel="No albums surfaced for this tag."
+                    actionLabel="See more"
+                    onAction={() => handleOpenTagExplorer('albums')}
+                    onPrimaryAction={handlePrimaryAction}
+                    onSecondaryAction={handleSecondaryAction}
+                    onOpenDetail={handleOpenDetail}
+                    onSearchSoulseek={handleSearchSoulseek}
+                  />
+
+                  <SectionRow
+                    title="Top Tracks"
+                    subtitle="Play the track if it exists locally, otherwise search the release on Soulseek."
+                    items={currentTag.topTracks || []}
+                    pendingId={pendingId}
+                    emptyLabel="No tracks surfaced for this tag."
+                    actionLabel="See more"
+                    onAction={() => handleOpenTagExplorer('tracks')}
+                    onPrimaryAction={handlePrimaryAction}
+                    onSecondaryAction={handleSecondaryAction}
+                    onOpenDetail={handleOpenDetail}
+                    onSearchSoulseek={handleSearchSoulseek}
+                  />
+
+                  <div ref={tagExplorerRef}>
+                    <TagChartExplorer
+                      currentTag={currentTag}
+                      selectedKind={activeTagExplorerKind}
+                      chart={activeTagExplorerKind ? currentTagCharts[activeTagExplorerKind] : null}
+                      loading={
+                        activeTagExplorerKind
+                          ? tagChartLoading[activeTagExplorerKind] || shouldBootstrapTagExplorer
+                          : false
+                      }
+                      error={activeTagExplorerKind ? tagChartErrors[activeTagExplorerKind] : null}
+                      pendingId={pendingId}
+                      onSelectKind={handleOpenTagExplorer}
+                      onPageChange={(page) => loadTagChartPage(activeTagExplorerKind, page)}
+                      onPrimaryAction={handlePrimaryAction}
+                      onSecondaryAction={handleSecondaryAction}
+                      onOpenDetail={handleOpenDetail}
+                      onSearchSoulseek={handleSearchSoulseek}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {hasDetailShell && (
+        <aside className="hidden min-h-0 overflow-hidden border-l border-slate-800/70 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col">
+          <DiscoverDetailPanel
+            detail={activeDetail}
+            detailLoading={detailLoading}
+            detailError={detailError}
+            pendingId={pendingId}
+            onClose={closeDetail}
+            onOpenDetail={handleOpenDetail}
+            onOpenTag={(tagName) => showTag(tagName)}
+            onPrimaryAction={handlePrimaryAction}
+            onSecondaryAction={handleSecondaryAction}
+            onSearchSoulseek={handleSearchSoulseek}
+          />
+        </aside>
+      )}
+
+      {hasDetailShell && (
+        <div className="fixed inset-0 z-50 flex items-end bg-slate-950/70 backdrop-blur-sm lg:hidden">
+          <div className="h-[88vh] w-full overflow-hidden rounded-t-[1.8rem] border border-slate-800/80 bg-slate-950 shadow-[0_-24px_60px_rgba(0,0,0,0.45)]">
+            <DiscoverDetailPanel
+              detail={activeDetail}
+              detailLoading={detailLoading}
+              detailError={detailError}
+              pendingId={pendingId}
+              onClose={closeDetail}
+              onOpenDetail={handleOpenDetail}
+              onOpenTag={(tagName) => showTag(tagName)}
+              onPrimaryAction={handlePrimaryAction}
+              onSecondaryAction={handleSecondaryAction}
+              onSearchSoulseek={handleSearchSoulseek}
+            />
+          </div>
+        </div>
+      )}
     </section>
   )
 }
