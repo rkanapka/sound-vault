@@ -43,7 +43,7 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 │  music lib   │  │  Soulseek    │  └─────────────┘
 └───────┬──────┘  └──────┬───────┘
         │                │
-        └───────┬─────────┘
+        └───────┬────────┘
          /music (host volume)
 ```
 
