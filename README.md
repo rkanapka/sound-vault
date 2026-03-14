@@ -34,12 +34,12 @@ A self-hosted music app that unifies [Navidrome](https://github.com/navidrome/na
 │  FastAPI (Python 3.14)                      │
 │  · /api/library/*  → Navidrome              │
 │  · /api/soulseek/* → slskd                  │
-│  · /api/discover/* → Last.fm               │
+│  · /api/discover/* → Last.fm                │
 └───────────┬─────────────┬──────────┬────────┘
             │             │          │
 ┌───────────▼──┐  ┌───────▼──────┐  ┌▼────────────┐
-│  navidrome   │  │  slskd       │  │  Last.fm API │
-│  :4533       │  │  :5030       │  │  (external)  │
+│  navidrome   │  │  slskd       │  │ Last.fm API │
+│  :4533       │  │  :5030       │  │ (external)  │
 │  music lib   │  │  Soulseek    │  └─────────────┘
 └───────┬──────┘  └──────┬───────┘
         │                │
