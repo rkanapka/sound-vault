@@ -7,11 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from config import settings
-from dependencies import get_http_client
+from dependencies import get_slskd_client
 
 router = APIRouter(prefix="/api/soulseek")
 
-HttpClient = Annotated[httpx.AsyncClient, Depends(get_http_client)]
+HttpClient = Annotated[httpx.AsyncClient, Depends(get_slskd_client)]
 
 
 class SearchRequest(BaseModel):

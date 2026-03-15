@@ -6,14 +6,23 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from config import settings
 from routers import discover, library, soulseek
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.http_client = httpx.AsyncClient()
+
+    slskd_headers = {}
+    if settings.slskd_api_key:
+        slskd_headers["X-API-Key"] = settings.slskd_api_key
+    app.state.slskd_client = httpx.AsyncClient(headers=slskd_headers)
+
     yield
+
     await app.state.http_client.aclose()
+    await app.state.slskd_client.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
