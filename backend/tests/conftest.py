@@ -16,6 +16,7 @@ async def client():
     # ASGITransport doesn't trigger lifespan, so set up app.state manually
     async with httpx.AsyncClient() as http_client:
         app.state.http_client = http_client
+        app.state.slskd_client = http_client
         async with httpx.AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as ac:

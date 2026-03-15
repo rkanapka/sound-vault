@@ -8,6 +8,10 @@ def get_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.http_client
 
 
+def get_slskd_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.slskd_client
+
+
 def nd_params(**extra) -> dict:
     return {
         "u": settings.navidrome_user,
