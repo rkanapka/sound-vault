@@ -10,3 +10,8 @@ HTML_TAG_RE = re.compile(r"<[^>]+>")
 LASTFM_PLACEHOLDER_IMAGE_NAMES = {"2a96cbd8b46e442fc41c2b86b821562f.png"}
 DETAIL_TAG_LIMIT = 8
 DETAIL_SECTION_LIMIT = 12
+TAG_CHART_ROOT = {
+    "artists": "topartists",
+    "albums": "albums",
+    "tracks": "tracks",
+}

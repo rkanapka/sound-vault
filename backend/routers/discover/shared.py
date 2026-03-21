@@ -9,6 +9,7 @@ from .constants import (
     IMAGE_SIZES,
     LASTFM_PLACEHOLDER_IMAGE_NAMES,
     SUMMARY_LINK_RE,
+    TAG_CHART_ROOT,
 )
 
 
@@ -508,6 +509,6 @@ def extract_tag_chart_page(
     kind: Literal["artists", "albums", "tracks"],
     requested_page: int,
 ) -> tuple[int, int]:
-    root_key = "topartists" if kind == "artists" else "albums" if kind == "albums" else "tracks"
+    root_key = TAG_CHART_ROOT[kind]
     root = (data or {}).get(root_key) or {}
     return extract_page_data(root, requested_page)
