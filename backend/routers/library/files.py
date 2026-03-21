@@ -35,7 +35,9 @@ async def delete_song(song_id: str, client: HttpClient):
         timeout=10,
     )
     auth_r.raise_for_status()
-    token = auth_r.json()["token"]
+    token = auth_r.json().get("token")
+    if not token:
+        raise HTTPException(status_code=502, detail="Failed to authenticate with Navidrome")
 
     song_r = await client.get(
         f"{settings.navidrome_url}/api/song/{song_id}",
