@@ -5,6 +5,7 @@ from typing import Any, Literal
 from .constants import (
     DETAIL_SECTION_LIMIT,
     DETAIL_TAG_LIMIT,
+    DISCOVER_PAGE_LIMITS,
     HTML_TAG_RE,
     IMAGE_SIZES,
     LASTFM_PLACEHOLDER_IMAGE_NAMES,
@@ -241,7 +242,7 @@ def disabled_tag_payload(tag_name: str) -> dict[str, Any]:
 
 
 def discover_page_limit(kind: Literal["artists", "albums", "tracks"]) -> int:
-    return 20
+    return DISCOVER_PAGE_LIMITS[kind]
 
 
 def normalize_tag_detail(data: dict[str, Any] | None, raw_tag: str) -> dict[str, Any]:

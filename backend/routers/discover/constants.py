@@ -15,3 +15,8 @@ TAG_CHART_ROOT = {
     "albums": "albums",
     "tracks": "tracks",
 }
+DISCOVER_PAGE_LIMITS: dict[str, int] = {
+    "artists": 20,
+    "albums": 20,
+    "tracks": 20,
+}
