@@ -49,7 +49,7 @@ async def delete_song(song_id: str, client: HttpClient):
     p = Path(song_path)
     resolved = p.resolve() if p.is_absolute() else (music_dir / p).resolve()
 
-    log.warning(
+    log.info(
         "delete_song: real_path=%r resolved=%s exists=%s", song_path, resolved, resolved.exists()
     )
 
